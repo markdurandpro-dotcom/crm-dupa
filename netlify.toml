@@ -1,0 +1,16 @@
+# Netlify config
+[build]
+  publish = "/"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# SPA redirect (tout pointe vers index.html)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

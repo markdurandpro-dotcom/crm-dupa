@@ -325,6 +325,10 @@ td.ellipsis { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white
 .outreach-log-item:last-child { border-bottom: none; }
 .outreach-canal { font-size: 14px; width: 20px; text-align: center; }
 
+/* SEND BUTTON */
+.btn-red:disabled { opacity: 0.6; cursor: wait; }
+#send-status { border: 1px solid var(--border); }
+
 /* ── AI CHAT ── */
 .chat-fab {
   position: fixed; bottom: 24px; right: 24px; z-index: 150;
@@ -578,10 +582,13 @@ td.ellipsis { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white
       </div>
       <div style="font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px;">Basé sur tes templates Düparecords — personnalisé par l'IA pour cette venue</div>
       <div class="msg-box" id="dr-msg">Sélectionne un canal et clique sur "Personnaliser avec l'IA"</div>
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-red btn-sm" onclick="sendMsg()" id="btn-send-msg">🚀 Envoyer</button>
         <button class="btn btn-ghost btn-sm" onclick="cpMsg()">⎘ Copier</button>
         <span id="cp-ok" style="font-size:10px;color:var(--green);opacity:0;transition:opacity 0.3s;">Copié !</span>
+        <span id="send-ok" style="font-size:10px;color:var(--green);opacity:0;transition:opacity 0.3s;"></span>
       </div>
+      <div id="send-status" style="display:none;margin-top:6px;padding:8px 10px;border-radius:2px;font-size:10px;line-height:1.6;"></div>
     </div>
     <div class="drawer-section">
       <div class="drawer-section-title">Historique <button class="btn btn-ghost btn-xs" onclick="addNote()">+ Note</button></div>
@@ -2119,6 +2126,190 @@ function cpMsg() {
   navigator.clipboard.writeText(document.getElementById('dr-msg').textContent).then(() => {
     const c = document.getElementById('cp-ok'); c.style.opacity='1'; setTimeout(()=>c.style.opacity='0',2000);
   });
+}
+
+// ═══════════════════════════════
+// ENVOI DIRECT SUR LES PLATEFORMES
+// ═══════════════════════════════
+async function sendMsg() {
+  const v = venues.find(x => x.id === selId);
+  if (!v) { toast('⚠ Sélectionne une venue'); return; }
+
+  const msg = document.getElementById('dr-msg').textContent;
+  if (!msg || msg.includes('apparaîtra ici') || msg.includes('Sélectionne un canal')) {
+    toast('⚠ Génère d\'abord un message avec l\'IA');
+    return;
+  }
+
+  const statusEl = document.getElementById('send-status');
+  const sendOk = document.getElementById('send-ok');
+  const btn = document.getElementById('btn-send-msg');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="dots" style="display:inline-flex;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+
+  if (selCh === 'email') {
+    // ── EMAIL : Envoyer via Gmail API (via Anthropic API comme proxy) ou ouvrir Gmail ──
+    const email = v.email;
+    if (!email) {
+      statusEl.style.display = 'block';
+      statusEl.style.background = '#FFEBEE';
+      statusEl.style.color = 'var(--red)';
+      statusEl.innerHTML = '⚠ Pas d\'email pour ' + v.nom + '. Ajoute un email dans les infos de la venue.';
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Envoyer';
+      return;
+    }
+
+    // Extraire l'objet du mail (première ligne si elle commence par "Objet :")
+    let subject = 'Düparecords – Proposition booking';
+    let body = msg;
+    if (msg.startsWith('Objet :') || msg.startsWith('Objet:')) {
+      const lines = msg.split('\n');
+      subject = lines[0].replace(/^Objet\s*:\s*/, '').trim();
+      body = lines.slice(1).join('\n').trim();
+    }
+
+    // Ouvrir Gmail compose avec le message pré-rempli
+    const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
+      '&to=' + encodeURIComponent(email) +
+      '&su=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(body);
+
+    window.open(gmailUrl, '_blank');
+
+    // Logger l'envoi
+    addHist(v, '📧 Email ouvert dans Gmail → ' + email);
+    if (v.stade === 'Pas commencer') v.stade = 'En cours';
+    save(); updateCounts();
+
+    statusEl.style.display = 'block';
+    statusEl.style.background = '#E8F5E9';
+    statusEl.style.color = 'var(--green)';
+    statusEl.innerHTML = '✅ Gmail ouvert avec le message pré-rempli pour <strong>' + email + '</strong><br>Clique "Envoyer" dans Gmail pour confirmer l\'envoi.';
+    sendOk.textContent = '✓ Gmail ouvert';
+    sendOk.style.opacity = '1';
+    setTimeout(() => sendOk.style.opacity = '0', 4000);
+    toast('📧 Gmail ouvert → ' + v.nom);
+  }
+
+  else if (selCh === 'instagram') {
+    // ── INSTAGRAM : Ouvrir le profil IG pour envoyer un DM ──
+    const ig = v.ig;
+    if (!ig) {
+      statusEl.style.display = 'block';
+      statusEl.style.background = '#FFEBEE';
+      statusEl.style.color = 'var(--red)';
+      statusEl.innerHTML = '⚠ Pas d\'Instagram pour ' + v.nom + '. Ajoute leur @ dans les infos.';
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Envoyer';
+      return;
+    }
+
+    // Copier le message dans le presse-papier
+    await navigator.clipboard.writeText(msg);
+
+    // Extraire le username IG
+    let igUser = ig.replace(/https?:\/\//g, '').replace('instagram.com/', '').replace(/\/$/, '');
+
+    // Ouvrir le DM Instagram directement
+    const igDmUrl = 'https://www.instagram.com/direct/new/';
+    const igProfileUrl = 'https://www.instagram.com/' + igUser + '/';
+
+    window.open(igProfileUrl, '_blank');
+
+    addHist(v, '📷 Instagram DM préparé → @' + igUser);
+    if (v.stade === 'Pas commencer') v.stade = 'En cours';
+    save(); updateCounts();
+
+    statusEl.style.display = 'block';
+    statusEl.style.background = '#F3E5F5';
+    statusEl.style.color = 'var(--purple)';
+    statusEl.innerHTML = '✅ Instagram ouvert pour <strong>@' + igUser + '</strong><br>📋 Message copié dans ton presse-papier !<br>→ Clique sur "Message" dans leur profil, puis <strong>Ctrl+V</strong> pour coller et envoyer.';
+    sendOk.textContent = '✓ IG ouvert + message copié';
+    sendOk.style.opacity = '1';
+    setTimeout(() => sendOk.style.opacity = '0', 5000);
+    toast('📷 Instagram ouvert → @' + igUser + ' (message copié)');
+  }
+
+  else if (selCh === 'linkedin') {
+    // ── LINKEDIN : Ouvrir LinkedIn messaging ──
+    // Copier le message dans le presse-papier
+    await navigator.clipboard.writeText(msg);
+
+    // Ouvrir LinkedIn search pour trouver la personne
+    const searchQuery = v.nom + ' ' + v.ville + ' directeur artistique booking';
+    const linkedinUrl = 'https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(searchQuery);
+
+    window.open(linkedinUrl, '_blank');
+
+    addHist(v, '💼 LinkedIn recherche ouverte pour ' + v.nom);
+    if (v.stade === 'Pas commencer') v.stade = 'En cours';
+    save(); updateCounts();
+
+    statusEl.style.display = 'block';
+    statusEl.style.background = '#E3F2FD';
+    statusEl.style.color = 'var(--blue)';
+    statusEl.innerHTML = '✅ LinkedIn ouvert — recherche <strong>"' + v.nom + '"</strong><br>📋 Message copié dans ton presse-papier !<br>→ Trouve le bon contact, clique "Message", puis <strong>Ctrl+V</strong> pour coller.';
+    sendOk.textContent = '✓ LinkedIn ouvert + message copié';
+    sendOk.style.opacity = '1';
+    setTimeout(() => sendOk.style.opacity = '0', 5000);
+    toast('💼 LinkedIn ouvert → ' + v.nom + ' (message copié)');
+  }
+
+  else if (selCh === 'whatsapp') {
+    // ── WHATSAPP : Ouvrir WhatsApp Web ──
+    const tel = v.telephone || v.email; // fallback
+    await navigator.clipboard.writeText(msg);
+
+    if (v.telephone) {
+      const phone = v.telephone.replace(/[^0-9+]/g, '');
+      const waUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+      window.open(waUrl, '_blank');
+    } else {
+      const waUrl = 'https://web.whatsapp.com/';
+      window.open(waUrl, '_blank');
+    }
+
+    addHist(v, '💬 WhatsApp préparé pour ' + v.nom);
+    if (v.stade === 'Pas commencer') v.stade = 'En cours';
+    save(); updateCounts();
+
+    statusEl.style.display = 'block';
+    statusEl.style.background = '#E8F5E9';
+    statusEl.style.color = 'var(--green)';
+    statusEl.innerHTML = '✅ WhatsApp ouvert' + (v.telephone ? ' pour <strong>' + v.telephone + '</strong>' : '') + '<br>📋 Message copié — colle-le dans la conversation.';
+    toast('💬 WhatsApp ouvert → ' + v.nom);
+  }
+
+  // Log dans Firebase
+  try {
+    await db.collection('outreach_log').add({
+      venue: v.nom,
+      canal: selCh,
+      status: 'sent',
+      email: v.email || '',
+      ig: v.ig || '',
+      message: msg.substring(0, 300),
+      timestamp: new Date().toISOString()
+    });
+  } catch(e) { /* silent */ }
+
+  // Update outreach log local
+  outreachLog.unshift({
+    date: new Date().toLocaleString('fr-FR'),
+    venue: v.nom,
+    canal: selCh,
+    status: 'sent',
+    message: msg.substring(0, 100)
+  });
+  DB.saveLog('outreach', outreachLog.slice(0, 200));
+
+  btn.disabled = false;
+  btn.innerHTML = '🚀 Envoyer';
+
+  // Masquer le status après 10 secondes
+  setTimeout(() => { statusEl.style.display = 'none'; }, 10000);
 }
 
 function showTemplate() {

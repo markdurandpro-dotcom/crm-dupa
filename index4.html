@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DUPA CRM v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+:root {
+  --red: #E8001C; --red2: #B50016;
+  --black: #0D0D0D; --black2: #1A1A1A; --black3: #242424;
+  --white: #FFFFFF; --bg: #F5F5F5; --border: #E8E8E8;
+  --text: #111; --muted: #888; --muted2: #CCC;
+  --green: #00A651; --orange: #F57C00; --blue: #0066CC; --purple: #7B2FBE;
+  --sidebar-w: 220px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;}
+
+/* ─── LOGIN SCREEN ─── */
+.login-screen{
+  position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:9999;
+  flex-direction:column;gap:0;
+}
+.login-screen.hidden{display:none;}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:12px;color:white;line-height:1;margin-bottom:8px;}
+.login-logo span{color:var(--red);}
+.login-sub{font-size:10px;letter-spacing:4px;color:#444;text-transform:uppercase;margin-bottom:48px;}
+.login-box{background:var(--black2);border:1px solid var(--black3);border-radius:4px;padding:32px;width:360px;max-width:90vw;}
+.login-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:white;margin-bottom:20px;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:6px;}
+.login-field input{width:100%;background:var(--black3);border:1px solid #333;border-radius:2px;padding:11px 14px;color:white;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border 0.2s;}
+.login-field input:focus{border-color:var(--red);}
+.login-btn{width:100%;background:var(--red);color:white;border:none;border-radius:2px;padding:13px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;cursor:pointer;transition:background 0.2s;margin-top:8px;}
+.login-btn:hover{background:var(--red2);}
+.login-err{font-size:11px;color:var(--red);margin-top:8px;min-height:16px;}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--black);
+  display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:10;
+  transition:transform 0.3s ease;
+}
+.logo-wrap{padding:22px 20px 18px;border-bottom:1px solid var(--black3);}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:5px;color:white;line-height:1;}
+.logo-red{color:var(--red);}
+.logo-sub{font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-top:3px;}
+.nav{flex:1;overflow-y:auto;padding:12px 0;}
+.nav-section{margin-bottom:4px;}
+.nav-main{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:#666;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;transition:all 0.15s;border-left:3px solid transparent;user-select:none;}
+.nav-main:hover{color:white;background:rgba(255,255,255,0.04);}
+.nav-main.active{color:white;border-left-color:var(--red);background:rgba(232,0,28,0.08);}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+.nav-arrow{margin-left:auto;font-size:9px;color:#444;transition:transform 0.2s;}
+.nav-main.open .nav-arrow{transform:rotate(90deg);}
+.nav-sub{display:none;padding:2px 0 6px;}
+.nav-main.open+.nav-sub{display:block;}
+.nav-sub-item{display:flex;align-items:center;gap:8px;padding:7px 20px 7px 40px;cursor:pointer;color:#555;font-size:11px;font-weight:500;transition:all 0.12s;border-left:3px solid transparent;}
+.nav-sub-item:hover{color:#999;}
+.nav-sub-item.active{color:white;border-left-color:var(--red);}
+.nav-badge{margin-left:auto;background:var(--black3);color:#555;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;}
+.nav-sub-item.active .nav-badge{background:var(--red);color:white;}
+.sidebar-bottom{border-top:1px solid var(--black3);padding:14px 20px;}
+.status-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.s-dot{width:6px;height:6px;border-radius:50%;background:#333;flex-shrink:0;}
+.s-dot.on{background:var(--green);box-shadow:0 0 4px var(--green);}
+.s-dot.pending{background:var(--orange);}
+.s-label{font-size:10px;color:#444;flex:1;}
+.s-btn{font-size:9px;color:var(--red);cursor:pointer;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:none;border:none;}
+
+/* ─── MOBILE TOPBAR ─── */
+.mobile-topbar{
+  display:none;background:var(--black);height:56px;padding:0 16px;
+  align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.hamburger{background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;}
+.mobile-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:white;}
+.mobile-logo span{color:var(--red);}
+.mobile-add{background:var(--red);color:white;border:none;border-radius:2px;padding:6px 12px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;cursor:pointer;}
+
+/* ─── SIDEBAR OVERLAY (mobile) ─── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99;}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.stats-row{display:flex;gap:1px;}
+.stat-chip{background:var(--bg);border:1px solid var(--border);padding:5px 14px;font-size:11px;font-weight:600;}
+.stat-chip span{color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:16px;margin-right:4px;}
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+
+/* ─── BUTTONS ─── */
+.btn{padding:8px 16px;border-radius:2px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-red{background:var(--red);color:white;}
+.btn-red:hover{background:var(--red2);}
+.btn-black{background:var(--black);color:white;}
+.btn-black:hover{background:var(--black2);}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.btn-ghost:hover{border-color:var(--text);}
+.btn-sm{padding:5px 11px;font-size:10px;}
+.btn-xs{padding:3px 8px;font-size:9px;}
+
+/* ─── FORMS ─── */
+.search-bar{display:flex;gap:8px;margin-bottom:18px;align-items:center;flex-wrap:wrap;}
+.search{flex:1;min-width:200px;max-width:360px;border:1.5px solid var(--border);border-radius:2px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;background:white;outline:none;}
+.search:focus{border-color:var(--black);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-weight:600;}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid var(--border);border-radius:2px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;background:white;transition:border 0.15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--black);}
+.field textarea{resize:vertical;min-height:70px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ─── TABLE ─── */
+.table-card{background:white;border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:600px;}
+thead{border-bottom:2px solid var(--black);}
+th{padding:10px 14px;text-align:left;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);white-space:nowrap;background:white;}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+tbody tr:hover{background:#FAFAFA;}
+tbody tr.sel{background:#FFF2F3!important;}
+td{padding:9px 14px;font-size:12px;vertical-align:middle;}
+td.ellipsis{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ─── BADGES ─── */
+.badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+.t-club{background:#111;color:white;}
+.t-festival{background:var(--purple);color:white;}
+.t-bar{background:var(--orange);color:white;}
+.t-da{background:var(--blue);color:white;}
+.t-event{background:var(--red);color:white;}
+.t-other{background:#888;color:white;}
+.s-badge{padding:3px 8px;border-radius:2px;font-size:9px;font-weight:700;}
+.s0{background:#F0F0F0;color:#999;}.s1{background:#E3F2FD;color:var(--blue);}
+.s2{background:#FFF3E0;color:var(--orange);}.s3{background:#F3E5F5;color:var(--purple);}
+.s4{background:#E8F5E9;color:var(--green);}.s5{background:#FFEBEE;color:var(--red);}
+
+/* ─── PIPELINE ─── */
+.pipeline{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:10px;}
+.pipeline-col{background:white;border:1px solid var(--border);border-radius:3px;overflow:hidden;min-height:200px;}
+.pipeline-head{padding:10px 12px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.pipeline-body{padding:8px;}
+.pipeline-card{background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:all 0.12s;}
+.pipeline-card:hover{border-color:var(--red);}
+.pipeline-card .pc-name{font-size:11px;font-weight:600;margin-bottom:3px;}
+.pipeline-card .pc-meta{font-size:10px;color:var(--muted);}
+.ph0{border-bottom-color:#CCC;}.ph1{border-bottom-color:var(--blue);}.ph2{border-bottom-color:var(--orange);}
+.ph3{border-bottom-color:var(--purple);}.ph4{border-bottom-color:var(--green);}.ph5{border-bottom-color:var(--red);}
+
+/* ─── VILLE ─── */
+.ville-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+.ville-card{background:white;border:1px solid var(--border);border-radius:3px;padding:14px 16px;cursor:pointer;transition:all 0.12s;}
+.ville-card:hover{border-color:var(--red);}
+.ville-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;margin-bottom:4px;}
+.ville-count{font-size:11px;color:var(--muted);}
+
+/* ─── DJ CARDS ─── */
+.dj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.dj-card{background:white;border:1px solid var(--border);border-radius:3px;padding:16px;cursor:pointer;transition:all 0.12s;border-top:3px solid transparent;position:relative;}
+.dj-card:hover{border-top-color:var(--red);box-shadow:0 4px 16px rgba(0,0,0,0.08);}
+.dj-card.sel{border-top-color:var(--red);background:#FFF8F8;}
+.dj-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;margin-bottom:2px;}
+.dj-style{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+.dj-prix{font-size:12px;font-weight:700;color:var(--red);}
+.dj-ig{font-size:10px;color:var(--blue);margin-top:4px;}
+.dj-ig a{color:var(--blue);text-decoration:none;}
+.dj-ig a:hover{text-decoration:underline;}
+.dj-stats{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.dj-stat-pill{padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;}
+.st-actif{background:#E8F5E9;color:var(--green);}
+.st-propose{background:#E3F2FD;color:var(--blue);}
+.st-valide{background:#E8F5E9;color:var(--green);}
+.st-refuse{background:#FFEBEE;color:var(--red);}
+
+/* ─── DJ MODAL ─── */
+.dj-modal-wrap{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.dj-modal-wrap.open{opacity:1;pointer-events:all;}
+.dj-modal-bg{position:absolute;inset:0;background:rgba(0,0,0,0.6);}
+.dj-modal{position:relative;background:white;border-radius:4px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.3);}
+.dj-modal-head{background:var(--black);padding:24px 28px;display:flex;align-items:flex-start;justify-content:space-between;}
+.dj-modal-name{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:white;line-height:1;}
+.dj-modal-style{font-size:12px;color:#666;margin-top:4px;letter-spacing:0.5px;}
+.dj-modal-close{background:none;border:none;color:#555;font-size:20px;cursor:pointer;padding:4px;line-height:1;}
+.dj-modal-close:hover{color:white;}
+.dj-modal-body{padding:24px 28px;}
+.dj-modal-prix{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--red);letter-spacing:2px;margin-bottom:16px;}
+.dj-modal-links{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.dj-link-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:2px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-decoration:none;text-transform:uppercase;cursor:pointer;border:none;}
+.dj-link-ig{background:#E1306C;color:white;}
+.dj-link-ig:hover{background:#c01250;}
+.dj-link-lk{background:#0077B5;color:white;}
+.dj-link-lk:hover{background:#005f8f;}
+.dj-modal-section{margin-bottom:20px;}
+.dj-modal-section-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.dj-booking-list{display:flex;flex-direction:column;gap:6px;}
+.dj-booking-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:2px;border:1px solid var(--border);font-size:12px;}
+.dj-booking-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-propose{background:var(--blue);}.dot-valide{background:var(--green);}.dot-refuse{background:var(--red);}
+.dj-booking-venue{font-weight:600;flex:1;}
+.dj-booking-status{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;}
+
+/* ─── ACTIONS ─── */
+.action-list{display:flex;flex-direction:column;gap:8px;}
+.action-item{background:white;border:1px solid var(--border);border-radius:3px;padding:12px 16px;display:flex;align-items:center;gap:14px;}
+.action-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.action-body{flex:1;min-width:0;}
+.action-title{font-size:12px;font-weight:600;margin-bottom:2px;}
+.action-meta{font-size:11px;color:var(--muted);}
+.action-date{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+/* ─── DRAWER ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.drawer{position:fixed;right:0;top:0;bottom:0;width:400px;max-width:100vw;background:white;z-index:210;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);overflow-y:auto;border-left:1px solid var(--border);}
+.drawer.open{transform:translateX(0);}
+.drawer-head{background:var(--black);padding:20px 20px 16px;position:sticky;top:0;z-index:1;}
+.drawer-close{background:none;border:none;color:#555;font-size:16px;cursor:pointer;float:right;line-height:1;padding:2px;}
+.drawer-close:hover{color:white;}
+.drawer-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:white;margin-bottom:4px;}
+.drawer-meta{font-size:11px;color:#555;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.drawer-ig-btn,.drawer-lk-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-decoration:none;cursor:pointer;border:none;letter-spacing:0.3px;}
+.drawer-ig-btn{background:#E1306C;color:white;}
+.drawer-ig-btn:hover{background:#c01250;}
+.drawer-lk-btn{background:#0077B5;color:white;}
+.drawer-lk-btn:hover{background:#005f8f;}
+.drawer-body{padding:20px;}
+.drawer-section{margin-bottom:20px;}
+.drawer-section-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.stade-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;}
+.stade-btn{padding:6px 8px;border-radius:2px;border:1.5px solid var(--border);font-size:9px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;text-align:center;transition:all 0.12s;background:white;color:var(--muted);}
+.stade-btn:hover,.stade-btn.on{background:var(--black);color:white;border-color:var(--black);}
+.ch-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.ch-tab{padding:5px 10px;border-radius:2px;border:1.5px solid var(--border);font-size:10px;font-weight:600;cursor:pointer;background:white;transition:all 0.12s;}
+.ch-tab.on{background:var(--black);color:white;border-color:var(--black);}
+.msg-box{border:1.5px solid var(--border);border-radius:2px;padding:12px;font-size:12px;line-height:1.7;min-height:140px;white-space:pre-wrap;color:var(--text);background:#FAFAFA;word-break:break-word;}
+.ai-box{background:linear-gradient(135deg,#0D0D0D,#1A1A1A);border-radius:3px;padding:14px 16px;margin-bottom:12px;}
+.ai-box-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--red);margin-bottom:8px;}
+.ai-box-text{font-size:12px;line-height:1.7;color:#CCC;}
+.hist-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.hist-item:last-child{border-bottom:none;}
+.hist-date{font-size:10px;color:var(--muted2);white-space:nowrap;min-width:80px;}
+.hist-text{color:var(--text);line-height:1.5;}
+.dots{display:inline-flex;gap:4px;align-items:center;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1.2s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:0.2s;}.dot:nth-child(3){animation-delay:0.4s;}
+@keyframes blink{0%,80%,100%{opacity:0.2;}40%{opacity:1;}}
+
+/* ─── MODALS ─── */
+.modal-wrap{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-wrap.open{opacity:1;pointer-events:all;}
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,0.5);}
+.modal{position:relative;background:white;border-radius:3px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.2);}
+.modal-head{background:var(--black);padding:16px 20px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:white;}
+.modal-body{padding:20px;}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* ─── SCRAPING PAGE ─── */
+.scrape-panel{background:white;border:1px solid var(--border);border-radius:3px;padding:24px;margin-bottom:20px;}
+.scrape-panel-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;margin-bottom:8px;}
+.scrape-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.config-input{width:100%;border:1.5px solid var(--border);border-radius:2px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;background:white;transition:border 0.15s;}
+.config-input:focus{border-color:var(--black);}
+.skill-box{background:var(--black);border-radius:3px;padding:20px;margin-bottom:12px;}
+.skill-box-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--red);margin-bottom:8px;}
+.skill-box-desc{font-size:11px;color:#666;line-height:1.7;}
+
+/* ─── OUTREACH PAGE ─── */
+.outreach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.outreach-stat{background:white;border:1px solid var(--border);border-radius:3px;padding:16px;text-align:center;}
+.outreach-stat-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--red);line-height:1;}
+.outreach-stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+.outreach-panel{background:white;border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.outreach-header{background:var(--black);color:white;padding:14px 18px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;display:flex;justify-content:space-between;align-items:center;}
+.outreach-body{padding:18px;}
+.outreach-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;}
+.ob-sent{background:#E8F5E9;color:var(--green);}
+.ob-queued{background:#FFF3E0;color:var(--orange);}
+.ob-failed{background:#FFEBEE;color:var(--red);}
+
+/* ─── OUTREACH POPUP ─── */
+.outreach-popup-wrap{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.outreach-popup-wrap.open{opacity:1;pointer-events:all;}
+.outreach-popup-bg{position:absolute;inset:0;background:rgba(0,0,0,0.6);}
+.outreach-popup{position:relative;background:white;border-radius:4px;width:800px;max-width:97vw;max-height:95vh;overflow-y:auto;box-shadow:0 32px 100px rgba(0,0,0,0.35);}
+.outreach-popup-head{background:var(--black);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;}
+.outreach-popup-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:white;}
+.outreach-popup-close{background:none;border:none;color:#555;font-size:20px;cursor:pointer;}
+.outreach-popup-close:hover{color:white;}
+.outreach-tabs{display:flex;border-bottom:2px solid var(--border);padding:0 24px;}
+.op-tab{padding:14px 20px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.15s;color:var(--muted);}
+.op-tab.active{color:var(--text);border-bottom-color:var(--red);}
+.outreach-popup-body{padding:24px;}
+.op-msg-section{display:none;}
+.op-msg-section.active{display:block;}
+.op-msg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.op-msg-label{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;}
+.op-msg-box{background:#FAFAFA;border:1.5px solid var(--border);border-radius:2px;padding:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;min-height:180px;word-break:break-word;}
+.op-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.op-send-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;border:none;transition:all 0.15s;}
+.op-ig{background:#E1306C;color:white;}.op-ig:hover{background:#c01250;}
+.op-lk{background:#0077B5;color:white;}.op-lk:hover{background:#005f8f;}
+.op-mail{background:var(--red);color:white;}.op-mail:hover{background:var(--red2);}
+.op-copy{background:var(--black);color:white;}.op-copy:hover{background:var(--black2);}
+
+/* ─── AI CHAT ─── */
+.chat-fab{position:fixed;bottom:24px;right:24px;z-index:150;background:var(--red);color:white;border:none;border-radius:2px;padding:12px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(232,0,28,0.4);transition:all 0.2s;letter-spacing:0.5px;}
+.chat-fab:hover{background:var(--red2);transform:translateY(-1px);}
+.ai-chat-panel{position:fixed;bottom:80px;right:24px;z-index:160;width:380px;height:520px;background:white;border:1px solid var(--border);border-radius:3px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.15);transform:translateY(20px) scale(0.97);opacity:0;pointer-events:none;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);}
+.ai-chat-panel.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all;}
+.ai-chat-header{background:var(--black);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ai-chat-dot{width:7px;height:7px;border-radius:50%;background:#333;}
+.ai-chat-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+.ai-chat-close{background:none;border:none;color:#555;font-size:16px;cursor:pointer;line-height:1;}
+.ai-chat-close:hover{color:white;}
+.ai-chat-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.ai-msg{display:flex;flex-direction:column;max-width:88%;}
+.ai-msg-bot{align-self:flex-start;}
+.ai-msg-user{align-self:flex-end;}
+.ai-msg-text{padding:10px 13px;border-radius:2px;font-size:12px;line-height:1.65;}
+.ai-msg-bot .ai-msg-text{background:var(--bg);border:1px solid var(--border);color:var(--text);}
+.ai-msg-user .ai-msg-text{background:var(--black);color:white;}
+.cmd-chip{display:inline-block;background:white;border:1.5px solid var(--border);border-radius:2px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;margin:3px 3px 0 0;transition:all 0.12s;color:var(--text);}
+.cmd-chip:hover{border-color:var(--red);color:var(--red);}
+.ai-action-card{background:white;border:1px solid var(--border);border-left:3px solid var(--red);border-radius:2px;padding:10px 12px;margin-top:6px;font-size:11px;}
+.ai-action-card .ac-title{font-weight:700;margin-bottom:4px;font-size:12px;}
+.ai-action-card .ac-item{color:var(--muted);padding:2px 0;}
+.ai-action-card .ac-item.pos{color:var(--green);font-weight:600;}
+.ai-chat-foot{border-top:1px solid var(--border);padding:10px 12px;display:flex;gap:8px;flex-shrink:0;background:white;}
+.ai-chat-input{flex:1;border:1.5px solid var(--border);border-radius:2px;padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;}
+.ai-chat-input:focus{border-color:var(--black);}
+.ai-chat-send{background:var(--red);color:white;border:none;border-radius:2px;width:36px;font-size:16px;cursor:pointer;transition:background 0.15s;}
+.ai-chat-send:hover{background:var(--red2);}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--black);color:white;padding:10px 20px;border-radius:2px;font-size:12px;font-weight:500;opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ─── BOOKING TABLE ─── */
+.booking-card{background:white;border:1px solid var(--border);border-radius:3px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all 0.12s;}
+.booking-card:hover{border-color:var(--red);}
+.booking-indicator{width:4px;height:40px;border-radius:2px;flex-shrink:0;}
+.bi-conf{background:var(--green);}
+.bi-nego{background:var(--orange);}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+#send-status{border:1px solid var(--border);}
+
+/* ─── RESPONSIVE MOBILE ─── */
+@media(max-width:768px){
+  body{flex-direction:column;}
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;z-index:100;
+    transform:translateX(-100%);width:260px;
+  }
+  .sidebar.mobile-open{transform:translateX(0);}
+  .sidebar-overlay{display:block;}
+  .mobile-topbar{display:flex;}
+  .topbar{display:none;}
+  .main{flex:1;overflow:hidden;}
+  .content{padding:16px;}
+  .pipeline{grid-template-columns:repeat(2,1fr);}
+  .dj-grid{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .scrape-config{grid-template-columns:1fr;}
+  .outreach-grid{grid-template-columns:1fr 1fr;}
+  .drawer{width:100%;max-width:100vw;}
+  .ai-chat-panel{width:calc(100vw - 32px);right:16px;bottom:76px;}
+  .chat-fab{right:16px;bottom:16px;padding:10px 16px;font-size:12px;}
+  .stats-row{display:none;}
+  table{min-width:480px;}
+  .ville-grid{grid-template-columns:repeat(2,1fr);}
+  .outreach-popup{width:100%;max-width:100vw;max-height:100vh;border-radius:0;}
+  .dj-modal{width:100%;max-width:100vw;max-height:100vh;border-radius:0;}
+}
+@media(max-width:480px){
+  .dj-grid{grid-template-columns:1fr;}
+  .outreach-grid{grid-template-columns:1fr;}
+  .ville-grid{grid-template-columns:1fr;}
+  .pipeline{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-logo">DU<span>PA</span></div>
+  <div class="login-sub">Booking CRM</div>
+  <div class="login-box">
+    <div class="login-title">Code d'accès</div>
+    <div class="login-field">
+      <label>Code PIN</label>
+      <input type="password" id="login-pin" placeholder="••••••" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()" autofocus style="font-size:22px;letter-spacing:6px;text-align:center;">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Accéder au CRM</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar" id="sidebar">
+  <div class="logo-wrap">
+    <div class="logo">DU<span class="logo-red">PA</span></div>
+    <div class="logo-sub">Booking CRM</div>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-section">
+      <div class="nav-main active open" data-section="clients" onclick="toggleNav(this,'clients')">
+        <span class="nav-icon">🏢</span> Clients <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-sub">
+        <div class="nav-sub-item active" onclick="goTo('clients','tous')">Tous <span class="nav-badge" id="nb-tous">0</span></div>
+        <div class="nav-sub-item" onclick="goTo('clients','pipeline')">Pipeline <span class="nav-badge" id="nb-pipeline">0</span></div>
+        <div class="nav-sub-item" onclick="goTo('clients','villes')">Par ville</div>
+        <div class="nav-sub-item" onclick="goTo('clients','types')">Par type</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-main" data-section="djs" onclick="toggleNav(this,'djs')">
+        <span class="nav-icon">🎧</span> DJs <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="goTo('djs','liste')">Artistes <span class="nav-badge" id="nb-djs">0</span></div>
+        <div class="nav-sub-item" onclick="goTo('djs','cachets')">Cachets / Tarifs</div>
+        <div class="nav-sub-item" onclick="goTo('djs','stats')">Stats par DJ</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-main" data-section="actions" onclick="toggleNav(this,'actions')">
+        <span class="nav-icon">⚡</span> Actions <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="goTo('actions','log')">Toutes les actions <span class="nav-badge" id="nb-actions">0</span></div>
+        <div class="nav-sub-item" onclick="goTo('actions','relances')">Relances <span class="nav-badge" id="nb-relances" style="background:var(--red);color:white;">0</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-main" data-section="booking" onclick="toggleNav(this,'booking')">
+        <span class="nav-icon">📅</span> Booking <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="goTo('booking','confirmes')">Confirmés <span class="nav-badge" id="nb-conf">0</span></div>
+        <div class="nav-sub-item" onclick="goTo('booking','nego')">En négociation <span class="nav-badge" id="nb-nego">0</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-main" data-section="scraping" onclick="toggleNav(this,'scraping')">
+        <span class="nav-icon">🔍</span> Scraping <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="goTo('scraping','lancer')">Lancer un scrape</div>
+        <div class="nav-sub-item" onclick="goTo('scraping','historique')">Historique <span class="nav-badge" id="nb-scrapes">0</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-main" data-section="outreach" onclick="toggleNav(this,'outreach')">
+        <span class="nav-icon">📨</span> Outreach <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="goTo('outreach','envoyer')">Envoyer messages</div>
+        <div class="nav-sub-item" onclick="goTo('outreach','log')">Log d'envois <span class="nav-badge" id="nb-outreach">0</span></div>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="status-row">
+      <div class="s-dot pending" id="firebase-dot"></div>
+      <div class="s-label" id="firebase-label">Firebase...</div>
+    </div>
+    <div class="status-row">
+      <div class="s-dot" id="api-dot"></div>
+      <div class="s-label" id="api-label">IA non connectée</div>
+      <button class="s-btn" onclick="openApiModal()">Config</button>
+    </div>
+    <div class="status-row" style="margin-top:8px;">
+      <div class="s-label" id="user-label" style="font-size:9px;color:#333;">—</div>
+      <button class="s-btn" onclick="doLogout()">Déco</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <!-- Mobile topbar -->
+  <div class="mobile-topbar">
+    <button class="hamburger" onclick="openSidebar()">☰</button>
+    <div class="mobile-logo">DU<span>PA</span></div>
+    <button class="mobile-add" onclick="openAddModal()">+ ADD</button>
+  </div>
+  <!-- Desktop topbar -->
+  <div class="topbar">
+    <div class="page-title" id="page-title">CLIENTS — TOUS</div>
+    <div class="topbar-right">
+      <div class="stats-row">
+        <div class="stat-chip"><span id="st-total">0</span>venues</div>
+        <div class="stat-chip"><span id="st-enc">0</span>en cours</div>
+        <div class="stat-chip"><span id="st-sig">0</span>signés</div>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="openAddModal()">+ Ajouter</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ CSV</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- ══ DETAIL DRAWER ══ -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div class="drawer-name" id="dr-name">—</div>
+    <div class="drawer-meta" id="dr-meta">—</div>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="drawer-section-title">Stade</div>
+      <div class="stade-grid" id="dr-stades"></div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Informations</div>
+      <div class="field"><label>Email / Téléphone</label><input id="dr-email" oninput="autosave()"></div>
+      <div class="field"><label>Instagram</label><input id="dr-ig" oninput="autosave()" placeholder="instagram.com/..."></div>
+      <div class="field"><label>LinkedIn</label><input id="dr-linkedin" oninput="autosave()" placeholder="linkedin.com/in/..."></div>
+      <div class="field"><label>Budget estimé</label><input id="dr-budget" placeholder="ex: 800–1500€" oninput="autosave()"></div>
+      <div class="field"><label>Artiste proposé</label><input id="dr-artiste" placeholder="ex: KAD, Luna Sky..." oninput="autosave()"></div>
+      <div class="field"><label>Relance</label><input type="date" id="dr-relance" oninput="autosave()"></div>
+      <div class="field"><label>Notes / Style musical</label><textarea id="dr-notes" oninput="autosave()"></textarea></div>
+    </div>
+    <div class="drawer-section" id="dr-ai-section" style="display:none">
+      <div class="ai-box"><div class="ai-box-title">✦ Analyse IA</div><div class="ai-box-text" id="dr-ai-text"></div></div>
+    </div>
+    <button class="btn btn-red" style="width:100%;justify-content:center;margin-bottom:14px;" onclick="analyzeVenue()">✦ Analyser avec l'IA</button>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Message de contact</div>
+      <div class="ch-tabs">
+        <button class="ch-tab on" onclick="setCh('email',this)">📧 Email</button>
+        <button class="ch-tab" onclick="setCh('instagram',this)">📷 IG</button>
+        <button class="ch-tab" onclick="setCh('linkedin',this)">💼 LinkedIn</button>
+        <button class="ch-tab" onclick="setCh('whatsapp',this)">💬 WA</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:8px;">
+        <button class="btn btn-red btn-sm" style="justify-content:center;" onclick="genMsg()">✦ Personnaliser avec l'IA</button>
+        <button class="btn btn-ghost btn-sm" onclick="showTemplate()">Brut</button>
+      </div>
+      <div class="msg-box" id="dr-msg" contenteditable="true">Sélectionne un canal et clique "Personnaliser avec l'IA"</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-red btn-sm" onclick="sendMsg()" id="btn-send-msg">🚀 Envoyer</button>
+        <button class="btn btn-ghost btn-sm" onclick="cpMsg()">⎘ Copier</button>
+        <span id="cp-ok" style="font-size:10px;color:var(--green);opacity:0;transition:opacity 0.3s;">Copié !</span>
+        <span id="send-ok" style="font-size:10px;color:var(--green);opacity:0;transition:opacity 0.3s;"></span>
+      </div>
+      <div id="send-status" style="display:none;margin-top:6px;padding:8px 10px;border-radius:2px;font-size:10px;line-height:1.6;"></div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Historique <button class="btn btn-ghost btn-xs" onclick="addNote()">+ Note</button></div>
+      <div id="dr-hist"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;color:var(--muted);margin-top:6px;" onclick="deleteVenue()">Supprimer</button>
+  </div>
+</div>
+
+<!-- ══ ADD MODAL ══ -->
+<div class="modal-wrap" id="add-modal">
+  <div class="modal-bg" onclick="closeAddModal()"></div>
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Nouvelle venue</div></div>
+    <div class="modal-body">
+      <div class="field"><label>Nom *</label><input id="m-nom" placeholder="Ex: Rex Club"></div>
+      <div class="form-row">
+        <div class="field"><label>Type</label><select id="m-type"><option>Club</option><option>Festival</option><option>Bar</option><option>DA</option><option>Event</option><option>Autre</option></select></div>
+        <div class="field"><label>Ville</label><input id="m-ville" value="Paris"></div>
+      </div>
+      <div class="field"><label>Email / Téléphone</label><input id="m-email"></div>
+      <div class="field"><label>Instagram</label><input id="m-ig" placeholder="instagram.com/..."></div>
+      <div class="field"><label>LinkedIn</label><input id="m-linkedin" placeholder="linkedin.com/in/..."></div>
+      <div class="field"><label>Style musical / Notes</label><textarea id="m-notes"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Annuler</button>
+      <button class="btn btn-black" onclick="addSimple()">Ajouter</button>
+      <button class="btn btn-red" onclick="addWithAI()">✦ Ajouter + Analyser</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ API MODAL ══ -->
+<div class="modal-wrap" id="api-modal">
+  <div class="modal-bg" onclick="closeApiModal()"></div>
+  <div class="modal" style="width:420px;">
+    <div class="modal-head"><div class="modal-title">Clé API Claude</div></div>
+    <div class="modal-body">
+      <div class="field"><label>Clé API Anthropic</label><input type="password" id="api-input" placeholder="sk-ant-api03-..."></div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+        Va sur <strong>console.anthropic.com</strong> → API Keys → Create Key
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeApiModal()">Annuler</button>
+      <button class="btn btn-red" onclick="saveApiKey()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OUTREACH POPUP (3 canaux) ══ -->
+<div class="outreach-popup-wrap" id="outreach-popup">
+  <div class="outreach-popup-bg" onclick="closeOutreachPopup()"></div>
+  <div class="outreach-popup">
+    <div class="outreach-popup-head">
+      <div>
+        <div class="outreach-popup-title" id="op-venue-name">Nom Venue</div>
+        <div style="font-size:11px;color:#555;margin-top:2px;" id="op-venue-meta"></div>
+      </div>
+      <button class="outreach-popup-close" onclick="closeOutreachPopup()">✕</button>
+    </div>
+    <div class="outreach-tabs">
+      <div class="op-tab active" onclick="switchOpTab('ig',this)">📷 Instagram</div>
+      <div class="op-tab" onclick="switchOpTab('mail',this)">📧 Email</div>
+      <div class="op-tab" onclick="switchOpTab('lk',this)">💼 LinkedIn</div>
+    </div>
+    <div class="outreach-popup-body">
+      <!-- IG -->
+      <div class="op-msg-section active" id="op-sec-ig">
+        <div class="op-msg-header">
+          <div class="op-msg-label">📷 Message Instagram</div>
+          <div class="dots" id="op-ig-dots" style="display:none"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
+        <div class="op-msg-box" id="op-msg-ig">Génération en cours...</div>
+        <div class="op-actions">
+          <button class="op-send-btn op-ig" onclick="opSendIG()">📷 Ouvrir Instagram</button>
+          <button class="op-send-btn op-copy" onclick="opCopy('ig')">⎘ Copier</button>
+        </div>
+      </div>
+      <!-- MAIL -->
+      <div class="op-msg-section" id="op-sec-mail">
+        <div class="op-msg-header">
+          <div class="op-msg-label">📧 Email</div>
+          <div class="dots" id="op-mail-dots" style="display:none"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
+        <div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Objet</label><div id="op-mail-subject" style="font-size:13px;font-weight:600;padding:6px 0;"></div></div>
+        <div class="op-msg-box" id="op-msg-mail">Génération en cours...</div>
+        <div class="op-actions">
+          <button class="op-send-btn op-mail" onclick="opSendMail()">📧 Ouvrir Gmail</button>
+          <button class="op-send-btn op-copy" onclick="opCopy('mail')">⎘ Copier</button>
+        </div>
+      </div>
+      <!-- LINKEDIN -->
+      <div class="op-msg-section" id="op-sec-lk">
+        <div class="op-msg-header">
+          <div class="op-msg-label">💼 LinkedIn</div>
+          <div class="dots" id="op-lk-dots" style="display:none"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
+        <div class="op-msg-box" id="op-msg-lk">Génération en cours...</div>
+        <div class="op-actions">
+          <button class="op-send-btn op-lk" onclick="opSendLK()">💼 Ouvrir LinkedIn</button>
+          <button class="op-send-btn op-copy" onclick="opCopy('lk')">⎘ Copier</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DJ MODAL ══ -->
+<div class="dj-modal-wrap" id="dj-modal">
+  <div class="dj-modal-bg" onclick="closeDjModal()"></div>
+  <div class="dj-modal">
+    <div class="dj-modal-head">
+      <div>
+        <div class="dj-modal-name" id="djm-name">—</div>
+        <div class="dj-modal-style" id="djm-style">—</div>
+      </div>
+      <button class="dj-modal-close" onclick="closeDjModal()">✕</button>
+    </div>
+    <div class="dj-modal-body">
+      <div class="dj-modal-prix" id="djm-prix">—</div>
+      <div class="dj-modal-links" id="djm-links"></div>
+      <div class="dj-modal-section">
+        <div class="dj-modal-section-title">Propositions & Bookings</div>
+        <div class="dj-booking-list" id="djm-bookings"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AI CHAT ══ -->
+<div class="ai-chat-panel" id="ai-chat-panel">
+  <div class="ai-chat-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="ai-chat-dot" id="chat-dot"></div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:white;">Assistant DUPA</span>
+    </div>
+    <button class="ai-chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="ai-chat-body" id="ai-chat-body">
+    <div class="ai-msg ai-msg-bot">
+      <div class="ai-msg-text">Bonjour ! Je suis ton assistant DUPA. Dis-moi ce que tu veux faire :<br><br>
+      <span class="cmd-chip" onclick="quickCmd('Donne-moi les stats du CRM')">📊 Stats</span>
+      <span class="cmd-chip" onclick="quickCmd('Quels clubs sont en négociation ?')">🔄 Négociations</span>
+      <span class="cmd-chip" onclick="quickCmd('Génère un message Instagram pour Rex Club')">💬 Message</span>
+      </div>
+    </div>
+  </div>
+  <div class="ai-chat-foot">
+    <input class="ai-chat-input" id="ai-chat-input" placeholder="Ex: Stats CRM, Message pour Rex Club..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="ai-chat-send" onclick="sendChat()">↑</button>
+  </div>
+</div>
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()"><span>✦</span><span>Assistant IA</span></button>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// FIREBASE CONFIG
+// ══════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBxA0dMH7XV4M_N0fu2hbQAaUsnv5GGp8E",
+  authDomain: "crm-du-ff414.firebaseapp.com",
+  projectId: "crm-du-ff414",
+  storageBucket: "crm-du-ff414.firebasestorage.app",
+  messagingSenderId: "2521589768",
+  appId: "1:2521589768:web:7f7a9824837400816f89bd"
+};
+
+// ══ EMAILS AUTORISÉS (plus utilisé avec PIN) ══
+// Accès via code PIN uniquement
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.firestore();
+const auth = firebase.auth();
+let firebaseReady = false;
+
+// ══════════════════════════════════
+// AUTH
+// ══════════════════════════════════
+// ── CODE PIN (hashé) ──
+// PIN : dupa2026 → hash SHA-256
+const VALID_PIN_HASH = 'a3b4c2d1e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2';
+
+async function hashPin(pin) {
+  const msgBuffer = new TextEncoder().encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// PINs valides (stockés en clair pour simplicité — modifie ici pour changer)
+const VALID_PINS = ['dupa2026', 'DUPA2026', 'duparecords'];
+
+function doLogin() {
+  const pin = document.getElementById('login-pin').value.trim();
+  const err = document.getElementById('login-err');
+  err.textContent = '';
+
+  if (VALID_PINS.includes(pin)) {
+    sessionStorage.setItem('dupa_auth', 'ok');
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('user-label').textContent = 'DUPA';
+    init();
+  } else {
+    err.textContent = '⚠ Code incorrect.';
+    document.getElementById('login-pin').value = '';
+    document.getElementById('login-pin').focus();
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('dupa_auth');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-pin').value = '';
+}
+
+// Vérif au chargement
+if (sessionStorage.getItem('dupa_auth') === 'ok') {
+  document.getElementById('login-screen').classList.add('hidden');
+  setTimeout(init, 100);
+}
+
+// ══════════════════════════════════
+// MOBILE NAV
+// ══════════════════════════════════
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('mobile-open');
+  document.getElementById('sidebar-overlay').style.display = 'block';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-overlay').style.display = 'none';
+}
+
+// ══════════════════════════════════
+// DATA — FIREBASE DB LAYER
+// ══════════════════════════════════
+const DB = {
+  async loadVenues() {
+    try {
+      const snap = await db.collection('venues').orderBy('nom').get();
+      const data = [];
+      snap.forEach(doc => data.push({...doc.data(), _docId: doc.id}));
+      firebaseReady = true;
+      updateStatusUI('firebase', true);
+      return data;
+    } catch(e) {
+      updateStatusUI('firebase', false);
+      return null;
+    }
+  },
+  async saveVenue(venue) {
+    if (!firebaseReady) { lsSave(); return; }
+    try {
+      const docId = venue._docId || String(venue.id);
+      const data = {...venue}; delete data._docId;
+      await db.collection('venues').doc(docId).set(data, {merge: true});
+    } catch(e) {}
+  },
+  async saveAll(list) {
+    if (!firebaseReady) { lsSave(); return; }
+    try {
+      const batch = db.batch();
+      for (const v of list) {
+        const docId = v._docId || String(v.id);
+        const data = {...v}; delete data._docId;
+        batch.set(db.collection('venues').doc(docId), data, {merge: true});
+      }
+      await batch.commit();
+    } catch(e) { lsSave(); }
+  },
+  async deleteVenue(venue) {
+    if (!firebaseReady) return;
+    try {
+      const docId = venue._docId || String(venue.id);
+      await db.collection('venues').doc(docId).delete();
+    } catch(e) {}
+  },
+  async saveConfig(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+    if (!firebaseReady) return;
+    try { await db.collection('config').doc(key).set({value: data, updatedAt: new Date().toISOString()}); } catch(e) {}
+  },
+  async loadConfig(key) {
+    try {
+      if (firebaseReady) {
+        const doc = await db.collection('config').doc(key).get();
+        if (doc.exists) { const v = doc.data().value; localStorage.setItem(key, JSON.stringify(v)); return v; }
+      }
+    } catch(e) {}
+    try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch(e) { return null; }
+  },
+  async saveLog(col, entries) {
+    localStorage.setItem('dupa_' + col, JSON.stringify(entries));
+    if (!firebaseReady) return;
+    try { await db.collection('logs').doc(col).set({entries: entries.slice(0,200), updatedAt: new Date().toISOString()}); } catch(e) {}
+  },
+  async loadLog(col) {
+    try {
+      if (firebaseReady) {
+        const doc = await db.collection('logs').doc(col).get();
+        if (doc.exists) { const e = doc.data().entries||[]; localStorage.setItem('dupa_'+col, JSON.stringify(e)); return e; }
+      }
+    } catch(e) {}
+    try { return JSON.parse(localStorage.getItem('dupa_'+col)||'[]'); } catch(e) { return []; }
+  }
+};
+
+function lsSave() { localStorage.setItem('dupa_v4', JSON.stringify(venues)); }
+
+function updateStatusUI(type, ok) {
+  if (type === 'firebase') {
+    const dot = document.getElementById('firebase-dot');
+    const lbl = document.getElementById('firebase-label');
+    if (!dot) return;
+    dot.className = 's-dot' + (ok ? ' on' : '');
+    lbl.textContent = ok ? 'Firebase ✓' : 'Firebase erreur';
+  }
+}
+
+// ══════════════════════════════════
+// DJS DATA
+// ══════════════════════════════════
+const DJS = [
+  {nom:'KAD', style:'Deep House · Melodic', min:1000, ig:'instagram.com/dimitriskad/', statut:'Actif'},
+  {nom:'Omizs & E.T!', style:'Nu Disco · Groovy House', min:800, ig:'instagram.com/omizs/', statut:'Actif'},
+  {nom:'Mayrika', style:'Tech House', min:800, ig:'instagram.com/mayrika__/', statut:'Actif'},
+  {nom:'Ferrand', style:'Deep House · Melodic', min:1200, ig:'instagram.com/ferrand.music/', statut:'Actif'},
+  {nom:'Leo Werner', style:'Deep House · Melodic', min:600, ig:'instagram.com/wernerleo/', statut:'Actif'},
+  {nom:'The Real Unknown', style:'Tribal House · Afro Tech', min:600, ig:'', statut:'Actif'},
+  {nom:'Michelle Bench', style:'Tech House · Nu Disco', min:700, ig:'instagram.com/michelle__bench/', statut:'Actif'},
+  {nom:'Jack Nahum', style:'Tech House', min:600, ig:'instagram.com/jack.nahum/', statut:'Actif'},
+  {nom:'Amstram', style:'Deep House · Melodic · Nu Disco', min:600, ig:'', statut:'Actif'},
+  {nom:'Saint-Martin', style:'Mélodic-Tech · Techno', min:600, ig:'instagram.com/saintmartin.unit/', statut:'Actif'},
+  {nom:'Portal', style:'Deep House · Melodic', min:600, ig:'instagram.com/quintusportal/', statut:'Actif'},
+  {nom:'Night Owl', style:'Techno · Techno-Trans', min:500, ig:'instagram.com/nightowl__artist/', statut:'Actif'},
+  {nom:'Decha Music', style:'Afro House · Deep House', min:500, ig:'instagram.com/decha.music/', statut:'Actif'},
+  {nom:'Lavelle', style:'Tech House · Minimal', min:300, ig:'instagram.com/lavelleofce/', statut:'Actif'},
+  {nom:'Yous', style:'Techno · Tech House', min:400, ig:'instagram.com/yous.ziyed/', statut:'Actif'},
+  {nom:'Kabé Music', style:'Tech House · Techno', min:500, ig:'instagram.com/kabe__music/', statut:'Actif'},
+  {nom:'Luna Sky', style:'Nu Disco · Groovy House', min:1200, ig:'instagram.com/lunaskye/', statut:'Actif'},
+  {nom:'RealGamore', style:'Deep House · Tribal', min:300, ig:'instagram.com/realgamore/', statut:'Actif'},
+  {nom:'Bady Lime', style:'Techno · Hard Techno', min:400, ig:'', statut:'Actif'},
+  {nom:'Lizy Music', style:'Nu Disco · House', min:600, ig:'instagram.com/lizy.music_/', statut:'Actif'},
+  {nom:'Two For All', style:'Nu Disco · Groovy House', min:1200, ig:'instagram.com/twoforall.music/', statut:'Actif'},
+  {nom:'Test 333', style:'Hard Techno', min:800, ig:'instagram.com/test333_music/', statut:'Actif'},
+  {nom:'Claude Emmanuelle', style:'Latin Core', min:800, ig:'instagram.com/claude.emmanuelle/', statut:'Actif'},
+  {nom:'Casa Mata', style:'Deep House · Melodic', min:1800, ig:'instagram.com/casamata_music/', statut:'Actif'},
+  {nom:'The Rush Avenue', style:'Deep House · Melodic', min:2000, ig:'instagram.com/rush.avenue/', statut:'Actif'},
+  {nom:'Feder', style:'Nu Disco · Groovy', min:8000, ig:'instagram.com/feder.music/', statut:'Actif'},
+  {nom:'Meta Flore', style:'Nu Disco · House', min:400, ig:'instagram.com/metaflore_music/', statut:'Actif'},
+  {nom:'Orsay Music', style:'Deep House · Melodic', min:400, ig:'instagram.com/orsaymusic/', statut:'Actif'},
+  {nom:'Icey Planet', style:'Deep House · Melodic', min:1500, ig:'instagram.com/iceyplanet/', statut:'Actif'}
+];
+
+const STADES = ['Pas commencer','En cours','Réponse reçue','En négociation','Booking confirmé','Refus'];
+
+let venues = [];
+let selId = null;
+let selCh = 'email';
+let curSection = 'clients';
+let curSub = 'tous';
+let apiKey = '';
+let scrapeHistory = [];
+let outreachLog = [];
+let chatOpen = false;
+let currentOutreachVenue = null;
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+async function init() {
+  // Load API key
+  const savedKey = localStorage.getItem('dupa_key');
+  if (savedKey) { apiKey = savedKey; updateApiUI(); }
+
+  // Load venues
+  const fbData = await DB.loadVenues();
+  if (fbData && fbData.length > 0) {
+    venues = fbData;
+  } else {
+    try { venues = JSON.parse(localStorage.getItem('dupa_v4') || '[]'); } catch(e) { venues = []; }
+  }
+
+  // Load logs
+  scrapeHistory = await DB.loadLog('scrapes');
+  outreachLog = await DB.loadLog('outreach');
+
+  document.getElementById('nb-scrapes').textContent = scrapeHistory.length || 0;
+  document.getElementById('nb-outreach').textContent = outreachLog.length || 0;
+  document.getElementById('nb-djs').textContent = DJS.length;
+
+  updateCounts();
+  renderPage();
+  goTo('clients', 'tous');
+}
+
+// ══════════════════════════════════
+// NAV
+// ══════════════════════════════════
+function toggleNav(el, section) {
+  document.querySelectorAll('.nav-main').forEach(n => {
+    if (n !== el) { n.classList.remove('open','active'); }
+  });
+  el.classList.toggle('open');
+  el.classList.add('active');
+}
+
+function goTo(section, sub) {
+  curSection = section; curSub = sub;
+  document.querySelectorAll('.nav-sub-item').forEach(el => el.classList.remove('active'));
+  // Close mobile sidebar
+  closeSidebar();
+  renderPage();
+}
+
+function updateCounts() {
+  const t = venues.length;
+  const enc = venues.filter(v => v.stade === 'En cours' || v.stade === 'Réponse reçue').length;
+  const sig = venues.filter(v => v.stade === 'Booking confirmé').length;
+  const rel = venues.filter(v => v.relance && new Date(v.relance) <= new Date()).length;
+  document.getElementById('st-total').textContent = t;
+  document.getElementById('st-enc').textContent = enc;
+  document.getElementById('st-sig').textContent = sig;
+  document.getElementById('nb-tous').textContent = t;
+  document.getElementById('nb-pipeline').textContent = venues.filter(v=>v.stade!=='Pas commencer').length;
+  document.getElementById('nb-actions').textContent = venues.reduce((a,v)=>a+(v.history||[]).length,0);
+  document.getElementById('nb-relances').textContent = rel;
+  document.getElementById('nb-conf').textContent = venues.filter(v=>v.stade==='Booking confirmé').length;
+  document.getElementById('nb-nego').textContent = venues.filter(v=>v.stade==='En négociation').length;
+}
+
+// ══════════════════════════════════
+// RENDER
+// ══════════════════════════════════
+function renderPage() {
+  const c = document.getElementById('content');
+  const titles = {
+    'clients-tous':'CLIENTS — TOUS','clients-pipeline':'CLIENTS — PIPELINE',
+    'clients-villes':'CLIENTS — PAR VILLE','clients-types':'CLIENTS — PAR TYPE',
+    'djs-liste':'DJs — ARTISTES','djs-cachets':'DJs — CACHETS','djs-stats':'DJs — STATS',
+    'actions-log':'ACTIONS — LOG','actions-relances':'ACTIONS — RELANCES',
+    'booking-confirmes':'BOOKING — CONFIRMÉS','booking-nego':'BOOKING — NÉGOCIATION',
+    'scraping-lancer':'SCRAPING — LANCER','scraping-historique':'SCRAPING — HISTORIQUE',
+    'outreach-envoyer':'OUTREACH — ENVOYER','outreach-log':'OUTREACH — LOG'
+  };
+  const titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = titles[curSection+'-'+curSub] || 'DUPA CRM';
+
+  if (curSection === 'clients') renderClients(c);
+  else if (curSection === 'djs') renderDJs(c);
+  else if (curSection === 'actions') renderActions(c);
+  else if (curSection === 'booking') renderBooking(c);
+  else if (curSection === 'scraping') renderScraping(c);
+  else if (curSection === 'outreach') renderOutreach(c);
+}
+
+// ── CLIENTS ──
+function renderClients(c) {
+  if (curSub === 'tous') {
+    c.innerHTML = `
+      <div class="search-bar">
+        <input class="search" id="srch" placeholder="Rechercher une venue..." oninput="filterTable()">
+        <select class="search" style="max-width:150px;" id="fil-type" onchange="filterTable()">
+          <option value="">Tous les types</option>
+          <option>Club</option><option>Festival</option><option>Bar</option><option>DA</option><option>Event</option>
+        </select>
+        <select class="search" style="max-width:160px;" id="fil-stade" onchange="filterTable()">
+          <option value="">Tous les stades</option>
+          ${STADES.map(s=>`<option>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="table-card"><div class="table-wrap"><table>
+        <thead><tr><th>Nom</th><th>Type</th><th>Ville</th><th>Stade</th><th>Contact</th><th>Artiste</th><th>Relance</th></tr></thead>
+        <tbody id="venue-tbody">${renderVenueRows(venues)}</tbody>
+      </table></div></div>`;
+  } else if (curSub === 'pipeline') {
+    c.innerHTML = `<div class="pipeline">${STADES.map((s,i)=>`
+      <div class="pipeline-col">
+        <div class="pipeline-head ph${i}"><span>${s}</span><span>${venues.filter(v=>v.stade===s).length}</span></div>
+        <div class="pipeline-body">${venues.filter(v=>v.stade===s).map(v=>`
+          <div class="pipeline-card" onclick="openDrawer(${v.id})">
+            <div class="pc-name">${v.nom}</div>
+            <div class="pc-meta">${v.type} · ${v.ville}</div>
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}</div>`;
+  } else if (curSub === 'villes') {
+    const villes = {};
+    venues.forEach(v => { villes[v.ville] = (villes[v.ville]||0)+1; });
+    c.innerHTML = `<div class="ville-grid">${Object.entries(villes).sort((a,b)=>b[1]-a[1]).map(([v,n])=>`
+      <div class="ville-card" onclick="filterByVille('${v}')">
+        <div class="ville-name">${v}</div>
+        <div class="ville-count">${n} venue${n>1?'s':''}</div>
+      </div>`).join('')}</div>`;
+  } else if (curSub === 'types') {
+    const types = {};
+    venues.forEach(v => { types[v.type||'Autre'] = (types[v.type||'Autre']||0)+1; });
+    c.innerHTML = `<div class="ville-grid">${Object.entries(types).map(([t,n])=>`
+      <div class="ville-card" onclick="filterByType('${t}')">
+        <div class="ville-name">${t}</div>
+        <div class="ville-count">${n} venue${n>1?'s':''}</div>
+      </div>`).join('')}</div>`;
+  }
+}
+
+function renderVenueRows(list) {
+  if (!list.length) return `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">Aucune venue</td></tr>`;
+  return list.map(v => {
+    const rel = v.relance ? new Date(v.relance) : null;
+    const relCls = rel && rel <= new Date() ? 'color:var(--red);font-weight:700;' : '';
+    const igBtn = v.ig ? `<a href="https://${v.ig.replace(/^https?:\/\//,'')}" target="_blank" onclick="event.stopPropagation()" style="color:var(--muted);font-size:12px;text-decoration:none;" title="Instagram">📷</a>` : '';
+    const lkBtn = v.linkedin ? `<a href="https://${v.linkedin.replace(/^https?:\/\//,'')}" target="_blank" onclick="event.stopPropagation()" style="color:var(--muted);font-size:12px;text-decoration:none;margin-left:4px;" title="LinkedIn">💼</a>` : '';
+    return `<tr onclick="openDrawer(${v.id})" class="${v.id===selId?'sel':''}">
+      <td><strong>${v.nom}</strong></td>
+      <td><span class="badge t-${(v.type||'other').toLowerCase().replace(' ','')}">${v.type||'—'}</span></td>
+      <td>${v.ville||'—'}</td>
+      <td><span class="s-badge s${STADES.indexOf(v.stade)}">${v.stade||'—'}</span></td>
+      <td>${igBtn}${lkBtn} ${v.email?'📧':''}</td>
+      <td class="ellipsis">${v.artiste||'—'}</td>
+      <td style="${relCls}">${v.relance||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTable() {
+  const q = (document.getElementById('srch')?.value||'').toLowerCase();
+  const t = document.getElementById('fil-type')?.value||'';
+  const s = document.getElementById('fil-stade')?.value||'';
+  const filtered = venues.filter(v =>
+    (!q || v.nom.toLowerCase().includes(q) || (v.ville||'').toLowerCase().includes(q)) &&
+    (!t || v.type === t) && (!s || v.stade === s)
+  );
+  const tb = document.getElementById('venue-tbody');
+  if (tb) tb.innerHTML = renderVenueRows(filtered);
+}
+
+function filterByVille(v) { curSub='tous'; renderPage(); setTimeout(()=>{ const el=document.getElementById('srch'); if(el){el.value=v;filterTable();} },50); }
+function filterByType(t) { curSub='tous'; renderPage(); setTimeout(()=>{ const el=document.getElementById('fil-type'); if(el){el.value=t;filterTable();} },50); }
+
+// ── DJS ──
+function renderDJs(c) {
+  if (curSub === 'liste') {
+    c.innerHTML = `<div class="dj-grid">${DJS.map(d=>{
+      const bookings = venues.filter(v => (v.artiste||'').toLowerCase().includes(d.nom.toLowerCase()));
+      const proposes = bookings.filter(v=>v.stade==='En cours'||v.stade==='Réponse reçue'||v.stade==='En négociation').length;
+      const valides = bookings.filter(v=>v.stade==='Booking confirmé').length;
+      return `<div class="dj-card" onclick="openDjModal('${d.nom}')">
+        <div class="dj-name">${d.nom}</div>
+        <div class="dj-style">${d.style}</div>
+        <div class="dj-prix">min ${d.min.toLocaleString('fr-FR')}€</div>
+        ${d.ig?`<div class="dj-ig"><a href="https://${d.ig}" target="_blank" onclick="event.stopPropagation()">@${d.ig.split('/')[1]||d.nom}</a></div>`:''}
+        <div class="dj-stats">
+          ${proposes?`<span class="dj-stat-pill st-propose">${proposes} proposé${proposes>1?'s':''}</span>`:''}
+          ${valides?`<span class="dj-stat-pill st-valide">${valides} booking${valides>1?'s':''}</span>`:''}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  } else if (curSub === 'cachets') {
+    c.innerHTML = `<div class="table-card"><div class="table-wrap"><table>
+      <thead><tr><th>Artiste</th><th>Style</th><th>Cachet min</th><th>Instagram</th><th>Bookings</th></tr></thead>
+      <tbody>${DJS.map(d=>{
+        const b = venues.filter(v=>(v.artiste||'').includes(d.nom)).length;
+        return `<tr onclick="openDjModal('${d.nom}')">
+          <td><strong>${d.nom}</strong></td><td><span style="font-size:11px;color:var(--muted);">${d.style}</span></td>
+          <td><strong style="color:var(--red);">${d.min.toLocaleString('fr-FR')}€</strong></td>
+          <td>${d.ig?`<a href="https://${d.ig}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);font-size:11px;">@${d.ig.split('/')[1]}</a>`:'—'}</td>
+          <td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${b?'var(--green)':'var(--muted)'};">${b}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div></div>`;
+  } else if (curSub === 'stats') {
+    const djStats = DJS.map(d => {
+      const b = venues.filter(v=>(v.artiste||'').includes(d.nom));
+      return { ...d, total:b.length, conf:b.filter(v=>v.stade==='Booking confirmé').length, nego:b.filter(v=>v.stade==='En négociation').length };
+    }).sort((a,b)=>b.total-a.total);
+    c.innerHTML = `<div class="table-card"><div class="table-wrap"><table>
+      <thead><tr><th>Artiste</th><th>Propositions</th><th>Confirmés</th><th>Négos</th><th>Activité</th></tr></thead>
+      <tbody>${djStats.map(d=>`<tr onclick="openDjModal('${d.nom}')">
+        <td><strong>${d.nom}</strong><br><span style="font-size:10px;color:var(--muted);">${d.style}</span></td>
+        <td><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue);">${d.total}</span></td>
+        <td><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${d.conf}</span></td>
+        <td><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--orange);">${d.nego}</span></td>
+        <td><div style="width:${Math.min(d.total*20,120)}px;height:4px;background:var(--red);border-radius:2px;"></div></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`;
+  }
+}
+
+// ── ACTIONS ──
+function renderActions(c) {
+  const allActions = [];
+  venues.forEach(v => {
+    (v.history||[]).forEach(h => allActions.push({...h, venue:v.nom, venueId:v.id}));
+  });
+  allActions.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if (curSub === 'log') {
+    c.innerHTML = `<div class="action-list">${allActions.slice(0,50).map(a=>`
+      <div class="action-item" onclick="openDrawer(${a.venueId})">
+        <div class="action-icon" style="background:var(--bg);">📝</div>
+        <div class="action-body">
+          <div class="action-title">${a.venue}</div>
+          <div class="action-meta">${a.text}</div>
+        </div>
+        <div class="action-date">${a.date}</div>
+      </div>`).join('') || '<div style="text-align:center;padding:40px;color:var(--muted);">Aucune action</div>'}
+    </div>`;
+  } else if (curSub === 'relances') {
+    const relances = venues.filter(v => v.relance && new Date(v.relance) <= new Date());
+    c.innerHTML = relances.length ? `<div class="action-list">${relances.map(v=>`
+      <div class="action-item" onclick="openDrawer(${v.id})">
+        <div class="action-icon" style="background:#FFEBEE;">⏰</div>
+        <div class="action-body">
+          <div class="action-title">${v.nom}</div>
+          <div class="action-meta">${v.type} · ${v.ville} · ${v.stade}</div>
+        </div>
+        <div class="action-date" style="color:var(--red);font-weight:700;">${v.relance}</div>
+      </div>`).join('')}</div>` :
+    '<div style="text-align:center;padding:60px;color:var(--muted);">✓ Aucune relance en attente</div>';
+  }
+}
+
+// ── BOOKING ──
+function renderBooking(c) {
+  const list = venues.filter(v => curSub==='confirmes' ? v.stade==='Booking confirmé' : v.stade==='En négociation');
+  c.innerHTML = list.length ? list.map(v=>`
+    <div class="booking-card" onclick="openDrawer(${v.id})">
+      <div class="booking-indicator ${curSub==='confirmes'?'bi-conf':'bi-nego'}"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${v.nom}</div>
+        <div style="font-size:11px;color:var(--muted);">${v.type} · ${v.ville} ${v.budget?'· '+v.budget:''}</div>
+      </div>
+      ${v.artiste?`<div style="font-size:12px;color:var(--red);font-weight:600;">${v.artiste}</div>`:''}
+    </div>`).join('') :
+  `<div style="text-align:center;padding:60px;color:var(--muted);">Aucun booking ${curSub==='confirmes'?'confirmé':'en négociation'}</div>`;
+}
+
+// ── SCRAPING ──
+function renderScraping(c) {
+  if (curSub === 'lancer') {
+    c.innerHTML = `
+      <div class="scrape-panel">
+        <div class="scrape-panel-title">🔍 Scraper de nouveaux prospects</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7;">
+          L'IA Claude va rechercher des clubs, bars, festivals et venues et enrichir les profils automatiquement.
+        </div>
+        <div class="skill-box" style="margin-bottom:16px;">
+          <div class="skill-box-title">✦ SKILL — Scraping Intelligence</div>
+          <div class="skill-box-desc">
+            Claude va rechercher et trouver : clubs, boîtes de nuit, bars dansants, festivals électroniques.<br>
+            Il vérifie et enrichit chaque venue : Instagram, LinkedIn, email, style musical, capacité, budget estimé.<br>
+            Il sélectionne ensuite les 5 artistes DUPA les plus compatibles avec chaque lieu.
+          </div>
+        </div>
+        <div class="scrape-config">
+          <div class="field">
+            <label>Villes (séparées par des virgules)</label>
+            <input id="scrape-villes" value="Paris, Lyon, Marseille" class="config-input">
+          </div>
+          <div class="field">
+            <label>Types de lieux</label>
+            <select id="scrape-types" class="config-input" style="height:auto;">
+              <option value="club,bar dansant,festival">Clubs + Bars + Festivals</option>
+              <option value="club,boite de nuit">Clubs uniquement</option>
+              <option value="festival,event electronique">Festivals uniquement</option>
+              <option value="bar,bar dansant">Bars uniquement</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="field" style="margin-bottom:0;width:120px;">
+            <label>Max résultats</label>
+            <input type="number" id="scrape-max" value="10" min="1" max="30" class="config-input">
+          </div>
+          <button class="btn btn-red" style="margin-top:14px;" onclick="startScrapeAI()" id="btn-scrape">
+            ✦ Lancer le Scraping IA
+          </button>
+        </div>
+        ${!apiKey?'<div style="margin-top:12px;background:#FFF3E0;border:1px solid #FFE0B2;border-radius:3px;padding:10px;font-size:11px;color:var(--orange);"><strong>⚠ Clé API requise</strong> — Configure ta clé Claude via le bouton "Config" en bas à gauche.</div>':''}
+      </div>
+      <div id="scrape-live-results"></div>`;
+  } else {
+    c.innerHTML = `
+      <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:var(--muted);">${scrapeHistory.length} scrapes effectués</span>
+        <button class="btn btn-ghost btn-sm" onclick="scrapeHistory=[];DB.saveLog('scrapes',[]);renderPage();toast('Historique vidé');">Vider</button>
+      </div>
+      <div class="table-card"><div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Villes</th><th>Types</th><th>Trouvés</th><th>Ajoutés</th></tr></thead>
+        <tbody>${scrapeHistory.map(s=>`<tr>
+          <td style="font-size:11px;">${s.date}</td>
+          <td style="font-size:11px;">${s.villes}</td>
+          <td style="font-size:11px;">${s.types}</td>
+          <td style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--blue);">${s.found}</td>
+          <td style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);">${s.added}</td>
+        </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted);">Aucun scrape</td></tr>'}</tbody>
+      </table></div></div>`;
+  }
+}
+
+// ── OUTREACH ──
+function renderOutreach(c) {
+  const pasContactes = venues.filter(v => v.stade === 'Pas commencer');
+  const avecIG = pasContactes.filter(v => v.ig).length;
+  const avecEmail = pasContactes.filter(v => v.email).length;
+
+  if (curSub === 'envoyer') {
+    c.innerHTML = `
+      <div class="outreach-grid">
+        <div class="outreach-stat"><div class="outreach-stat-num">${pasContactes.length}</div><div class="outreach-stat-label">Pas contactés</div></div>
+        <div class="outreach-stat"><div class="outreach-stat-num">${avecIG}</div><div class="outreach-stat-label">Avec Instagram</div></div>
+        <div class="outreach-stat"><div class="outreach-stat-num">${avecEmail}</div><div class="outreach-stat-label">Avec email</div></div>
+      </div>
+      <div class="skill-box" style="margin-bottom:16px;">
+        <div class="skill-box-title">✦ SKILL — Outreach Intelligence</div>
+        <div class="skill-box-desc">
+          Pour chaque venue sélectionnée, Claude génère 3 messages personnalisés (Instagram, Email, LinkedIn) avec storytelling adapté, 
+          les @ des DJs compatibles et @duparecords. Tu valides et envoies depuis les popups.
+        </div>
+      </div>
+      <div class="outreach-panel">
+        <div class="outreach-header">
+          <span>Envoyer des messages</span>
+        </div>
+        <div class="outreach-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div class="field" style="margin-bottom:0;">
+              <label>Cibles</label>
+              <select id="outreach-target" class="config-input">
+                <option value="all">Toutes les venues non contactées (${pasContactes.length})</option>
+                <option value="with-ig">Avec Instagram (${avecIG})</option>
+                <option value="with-email">Avec email (${avecEmail})</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Ville (optionnel)</label>
+              <input id="outreach-ville" class="config-input" placeholder="Paris, Lyon...">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-red" onclick="startOutreachSingle()">✦ Générer pour une venue</button>
+            <button class="btn btn-ghost" onclick="previewOutreach()">👁 Prévisualiser les cibles</button>
+          </div>
+          <div id="outreach-preview" style="margin-top:16px;"></div>
+        </div>
+      </div>`;
+  } else {
+    c.innerHTML = `
+      <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:var(--muted);">${outreachLog.length} messages envoyés</span>
+        <button class="btn btn-ghost btn-sm" onclick="outreachLog=[];DB.saveLog('outreach',[]);renderPage();toast('Log vidé');">Vider</button>
+      </div>
+      <div class="table-card"><div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Venue</th><th>Canal</th><th>Statut</th><th>Message</th></tr></thead>
+        <tbody>${outreachLog.map(l=>`<tr>
+          <td style="font-size:10px;">${l.date}</td><td style="font-weight:600;">${l.venue}</td>
+          <td>${l.canal==='email'?'📧':l.canal==='instagram'?'📷':l.canal==='linkedin'?'💼':'💬'} ${l.canal}</td>
+          <td><span class="outreach-badge ${l.status==='sent'?'ob-sent':l.status==='queued'?'ob-queued':'ob-failed'}">${l.status==='sent'?'✓ Envoyé':l.status==='queued'?'⏳ Queue':'✕ Erreur'}</span></td>
+          <td style="font-size:10px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.message||'—'}</td>
+        </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted);">Aucun message</td></tr>'}</tbody>
+      </table></div></div>`;
+  }
+}
+
+// ══════════════════════════════════
+// SCRAPING SKILL
+// ══════════════════════════════════
+async function startScrapeAI() {
+  if (!apiKey) { toast('⚠ Configure ta clé API Claude'); return; }
+  const villes = document.getElementById('scrape-villes').value.split(',').map(v=>v.trim()).filter(Boolean);
+  const types = document.getElementById('scrape-types').value;
+  const max = parseInt(document.getElementById('scrape-max').value) || 10;
+  const btn = document.getElementById('btn-scrape');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="dots" style="display:inline-flex;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Scraping en cours...';
+
+  const resultsDiv = document.getElementById('scrape-live-results');
+  resultsDiv.innerHTML = `<div style="background:white;border:1px solid var(--border);border-radius:3px;padding:20px;margin-top:16px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">🔍 L'IA recherche des venues dans : ${villes.join(', ')}</div>
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>`;
+
+  const SCRAPING_SKILL = `Tu es un expert du scraping de venues musicales en France pour l'agence de booking DUPA.
+
+MISSION : Trouver ${max} venues (clubs, bars dansants, festivals électroniques) dans : ${villes.join(', ')}
+Types recherchés : ${types}
+
+ROSTER DJS DUPA pour matching :
+${DJS.map(d=>`${d.nom} (${d.style}, min ${d.min}€)`).join(' | ')}
+
+POUR CHAQUE VENUE, tu dois :
+1. Trouver des infos réelles (venues qui existent vraiment en France)
+2. Identifier leur style musical et programmation
+3. Estimer leur capacité et budget DJ
+4. Trouver leur Instagram (@) et email si possible
+5. Sélectionner les 5 DJs DUPA les plus compatibles
+
+Déjà dans la base (à exclure) : ${venues.slice(0,20).map(v=>v.nom).join(', ')}
+
+RÉPONDS UNIQUEMENT EN JSON (sans backticks) :
+[{
+  "nom": "Nom exact de la venue",
+  "type": "Club|Festival|Bar|DA|Event",
+  "ville": "Ville",
+  "email": "email@venue.com ou vide",
+  "ig": "instagram.com/compte/ ou vide",
+  "linkedin": "linkedin.com/company/... ou vide",
+  "notes": "Style musical, capacité, ambiance, infos clés",
+  "budget": "ex: 500-1500€",
+  "artistes_suggeres": ["DJ1", "DJ2", "DJ3", "DJ4", "DJ5"]
+}]`;
+
+  try {
+    const res = await claudeAPI(SCRAPING_SKILL);
+    const clean = res.replace(/```json|```/g, '').trim();
+    const newVenues = JSON.parse(clean);
+
+    let added = 0;
+    for (const v of newVenues) {
+      const exists = venues.find(ex => ex.nom.toLowerCase() === v.nom.toLowerCase());
+      if (!exists) {
+        venues.push({
+          id: Date.now() + Math.random(),
+          nom: v.nom, type: v.type||'Club', ville: v.ville||'Paris',
+          email: v.email||'', ig: v.ig||'', linkedin: v.linkedin||'',
+          notes: v.notes||'', budget: v.budget||'',
+          artiste: (v.artistes_suggeres||[]).slice(0,3).join(', '),
+          stade: 'Pas commencer', relance: '',
+          history: [{date: new Date().toLocaleString('fr-FR'), text: `Ajouté par scraping IA — artistes suggérés: ${(v.artistes_suggeres||[]).join(', ')}`}],
+          aiEnriched: true, source: 'ai-scrape'
+        });
+        added++;
+      }
+    }
+    save(); updateCounts();
+
+    scrapeHistory.unshift({
+      date: new Date().toLocaleString('fr-FR'),
+      villes: villes.join(', '), types: types,
+      found: newVenues.length, added: added
+    });
+    DB.saveLog('scrapes', scrapeHistory.slice(0,50));
+    document.getElementById('nb-scrapes').textContent = scrapeHistory.length;
+
+    resultsDiv.innerHTML = `<div style="background:white;border:1px solid var(--border);border-radius:3px;padding:20px;margin-top:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:12px;color:var(--green);">✓ ${added} nouvelles venues ajoutées</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${newVenues.map(v=>`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:2px;background:var(--bg);font-size:12px;">
+          <span style="font-weight:700;">${v.nom}</span>
+          <span style="color:var(--muted);">${v.type} · ${v.ville}</span>
+          <span style="margin-left:auto;color:var(--red);font-size:10px;">${(v.artistes_suggeres||[]).slice(0,3).join(', ')}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+    toast(`✦ ${added} nouvelles venues ajoutées au CRM`);
+    renderPage();
+  } catch(e) {
+    resultsDiv.innerHTML = `<div style="background:#FFEBEE;border:1px solid #FFCDD2;border-radius:3px;padding:16px;margin-top:16px;font-size:12px;color:var(--red);">Erreur scraping : ${e.message}</div>`;
+    toast('Erreur : ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '✦ Lancer le Scraping IA';
+}
+
+// ══════════════════════════════════
+// OUTREACH SKILL
+// ══════════════════════════════════
+function startOutreachSingle() {
+  const target = document.getElementById('outreach-target').value;
+  const villeFilter = document.getElementById('outreach-ville').value.trim().toLowerCase();
+  let targetVenues = venues.filter(v => v.stade === 'Pas commencer');
+  if (target === 'with-ig') targetVenues = targetVenues.filter(v => v.ig);
+  if (target === 'with-email') targetVenues = targetVenues.filter(v => v.email);
+  if (villeFilter) targetVenues = targetVenues.filter(v => v.ville.toLowerCase().includes(villeFilter));
+
+  if (!targetVenues.length) { toast('⚠ Aucune venue correspondante'); return; }
+  const v = targetVenues[0]; // Prendre la première pour démo, ou ouvrir un sélecteur
+  openOutreachPopup(v);
+}
+
+function previewOutreach() {
+  const target = document.getElementById('outreach-target').value;
+  const villeFilter = document.getElementById('outreach-ville').value.trim().toLowerCase();
+  let targetVenues = venues.filter(v => v.stade === 'Pas commencer');
+  if (target === 'with-ig') targetVenues = targetVenues.filter(v => v.ig);
+  if (target === 'with-email') targetVenues = targetVenues.filter(v => v.email);
+  if (villeFilter) targetVenues = targetVenues.filter(v => v.ville.toLowerCase().includes(villeFilter));
+
+  const prev = document.getElementById('outreach-preview');
+  prev.innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${targetVenues.length} venues cibles</div>
+    <div class="table-card"><div class="table-wrap"><table>
+      <thead><tr><th>Venue</th><th>Type</th><th>Ville</th><th>IG</th><th>Email</th><th>Action</th></tr></thead>
+      <tbody>${targetVenues.slice(0,20).map(v=>`<tr>
+        <td><strong>${v.nom}</strong></td>
+        <td><span class="badge t-${(v.type||'other').toLowerCase()}">${v.type}</span></td>
+        <td>${v.ville}</td>
+        <td>${v.ig?'✓':'—'}</td><td>${v.email?'✓':'—'}</td>
+        <td><button class="btn btn-red btn-xs" onclick="openOutreachPopup(venues.find(x=>x.id==${v.id}))">✦ Générer</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`;
+}
+
+async function openOutreachPopup(v) {
+  if (!v) return;
+  if (!apiKey) { toast('⚠ Configure ta clé API Claude'); return; }
+  currentOutreachVenue = v;
+
+  // Init popup
+  document.getElementById('op-venue-name').textContent = v.nom;
+  document.getElementById('op-venue-meta').textContent = `${v.type} · ${v.ville}`;
+  document.getElementById('op-msg-ig').textContent = 'Génération en cours...';
+  document.getElementById('op-msg-mail').textContent = 'Génération en cours...';
+  document.getElementById('op-msg-lk').textContent = 'Génération en cours...';
+  document.getElementById('op-mail-subject').textContent = '';
+  document.getElementById('outreach-popup').classList.add('open');
+  switchOpTab('ig', document.querySelector('.op-tab'));
+
+  // Préparer les DJs compatibles
+  const djsSuggeres = suggereDJs(v, 3);
+  const djsIG = djsSuggeres.map(d => `${d.nom} (@${d.ig?d.ig.replace('instagram.com/','').replace('/',''):'duparecords'})`).join(', ');
+  const djsEmail = djsSuggeres.map(d => `${d.nom} — https://${d.ig||'instagram.com/duparecords/'}`).join('\n');
+
+  // SKILL OUTREACH
+  const OUTREACH_SKILL_IG = `Tu es agent de booking senior chez Düparecords, un label house/tech house parisien qui propulse des DJs électroniques sur la scène française et européenne.
+
+VENUE : ${v.nom} — ${v.type} — ${v.ville}
+Style / Notes : ${v.notes || 'scène électronique'}
+Instagram venue : ${v.ig || 'non disponible'}
+
+DJs suggérés : ${djsIG}
+Notre compte : @duparecords
+
+RÈGLES INSTAGRAM :
+- 5 paragraphes courts, ton direct et authentique (pas corporate)
+- Mentionne les DJs avec leur @ Instagram
+- Mentionne @duparecords
+- Pas plus de 300 mots
+- Commence par "Hello ${v.nom},"
+- Storytelling : montre que tu connais leur identité artistique
+- Finir par une question ouverte courte
+
+Écris UNIQUEMENT le message final, sans introduction ni explication.`;
+
+  const OUTREACH_SKILL_EMAIL = `Tu es agent de booking senior chez Düparecords, un label house/tech house parisien.
+
+VENUE : ${v.nom} — ${v.type} — ${v.ville}
+Style / Notes : ${v.notes || 'scène électronique'}
+Email venue : ${v.email || 'non disponible'}
+
+DJs à mentionner :
+${djsEmail}
+Label : Düparecords — https://instagram.com/duparecords/
+
+RÈGLES EMAIL (storytelling professionnel) :
+- Objet court et percutant (sans [crochet])
+- Accroche qui montre que tu connais leur programmation
+- Corps de 3-4 paragraphes avec les liens cliquables vers les artistes
+- Ton chaleureux et professionnel, pas de vente agressive  
+- Closing avec proposition de call ou échange de press kits
+- Signature : [Ton prénom] — Düparecords
+
+FORMAT DE RÉPONSE (exact) :
+OBJET: [l'objet ici]
+---
+[le corps de l'email ici]
+
+Écris UNIQUEMENT l'email, sans introduction ni explication.`;
+
+  const OUTREACH_SKILL_LK = `Tu es agent de booking senior chez Düparecords, un label house/tech house parisien.
+
+VENUE : ${v.nom} — ${v.type} — ${v.ville}
+Style / Notes : ${v.notes || 'scène électronique'}
+
+DJs à mentionner avec liens :
+${djsEmail}
+Label : Düparecords — https://instagram.com/duparecords/
+
+RÈGLES LINKEDIN :
+- 3 paragraphes, ton networking professionnel
+- Mentionner leur rôle (DA, programmateur, etc.)
+- Inclure les liens cliquables vers les artistes
+- Pas de vente directe : approche collaboration
+- 200 mots maximum
+
+Écris UNIQUEMENT le message final.`;
+
+  // Générer les 3 messages en parallèle
+  const showDots = (id, show) => {
+    document.getElementById(id).style.display = show ? 'inline-flex' : 'none';
+  };
+
+  showDots('op-ig-dots', true);
+  showDots('op-mail-dots', true);
+  showDots('op-lk-dots', true);
+
+  const [igRes, emailRes, lkRes] = await Promise.allSettled([
+    claudeAPI(OUTREACH_SKILL_IG),
+    claudeAPI(OUTREACH_SKILL_EMAIL),
+    claudeAPI(OUTREACH_SKILL_LK)
+  ]);
+
+  // IG
+  showDots('op-ig-dots', false);
+  if (igRes.status === 'fulfilled') {
+    document.getElementById('op-msg-ig').textContent = igRes.value;
+  } else {
+    document.getElementById('op-msg-ig').textContent = 'Erreur génération : ' + igRes.reason;
+  }
+
+  // Email
+  showDots('op-mail-dots', false);
+  if (emailRes.status === 'fulfilled') {
+    const parts = emailRes.value.split('---');
+    if (parts.length >= 2) {
+      document.getElementById('op-mail-subject').textContent = parts[0].replace(/^OBJET:\s*/i,'').trim();
+      document.getElementById('op-msg-mail').textContent = parts.slice(1).join('---').trim();
+    } else {
+      document.getElementById('op-msg-mail').textContent = emailRes.value;
+    }
+  } else {
+    document.getElementById('op-msg-mail').textContent = 'Erreur génération : ' + emailRes.reason;
+  }
+
+  // LinkedIn
+  showDots('op-lk-dots', false);
+  if (lkRes.status === 'fulfilled') {
+    document.getElementById('op-msg-lk').textContent = lkRes.value;
+  } else {
+    document.getElementById('op-msg-lk').textContent = 'Erreur génération : ' + lkRes.reason;
+  }
+
+  addHist(v, 'Messages outreach générés (IG + Email + LinkedIn)');
+  if (v.stade === 'Pas commencer') { v.stade = 'En cours'; save(); updateCounts(); }
+}
+
+function closeOutreachPopup() {
+  document.getElementById('outreach-popup').classList.remove('open');
+  currentOutreachVenue = null;
+}
+
+function switchOpTab(tab, el) {
+  document.querySelectorAll('.op-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.op-msg-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('op-sec-' + tab).classList.add('active');
+}
+
+function opCopy(tab) {
+  const msg = document.getElementById('op-msg-' + tab).textContent;
+  const subj = tab === 'mail' ? document.getElementById('op-mail-subject').textContent : '';
+  const full = subj ? `${subj}\n\n${msg}` : msg;
+  navigator.clipboard.writeText(full).then(() => toast('✓ Copié !'));
+}
+
+function opSendIG() {
+  const v = currentOutreachVenue; if (!v) return;
+  navigator.clipboard.writeText(document.getElementById('op-msg-ig').textContent);
+  let igUrl = v.ig || 'https://instagram.com';
+  if (!igUrl.startsWith('http')) igUrl = 'https://' + igUrl;
+  window.open(igUrl, '_blank');
+  logOutreach(v, 'instagram');
+  toast('📷 Instagram ouvert + message copié');
+}
+
+function opSendMail() {
+  const v = currentOutreachVenue; if (!v) return;
+  if (!v.email) { toast('⚠ Pas d\'email pour cette venue'); return; }
+  const subj = document.getElementById('op-mail-subject').textContent;
+  const body = document.getElementById('op-msg-mail').textContent;
+  window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(v.email) + '&su=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body), '_blank');
+  logOutreach(v, 'email');
+  toast('📧 Gmail ouvert');
+}
+
+function opSendLK() {
+  const v = currentOutreachVenue; if (!v) return;
+  navigator.clipboard.writeText(document.getElementById('op-msg-lk').textContent);
+  if (v.linkedin) {
+    let lkUrl = v.linkedin;
+    if (!lkUrl.startsWith('http')) lkUrl = 'https://' + lkUrl;
+    window.open(lkUrl, '_blank');
+  } else {
+    window.open('https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(v.nom + ' ' + v.ville), '_blank');
+  }
+  logOutreach(v, 'linkedin');
+  toast('💼 LinkedIn ouvert + message copié');
+}
+
+function logOutreach(v, canal) {
+  outreachLog.unshift({ date: new Date().toLocaleString('fr-FR'), venue: v.nom, canal, status: 'sent', message: '' });
+  DB.saveLog('outreach', outreachLog.slice(0,200));
+  document.getElementById('nb-outreach').textContent = outreachLog.length;
+  try { db.collection('outreach_log').add({ venue: v.nom, canal, status: 'sent', timestamp: new Date().toISOString() }); } catch(e) {}
+}
+
+// ══════════════════════════════════
+// DRAWER
+// ══════════════════════════════════
+function openDrawer(id) {
+  const v = venues.find(x => x.id === id);
+  if (!v) return;
+  selId = id;
+
+  document.getElementById('dr-name').textContent = v.nom;
+
+  // Meta avec boutons IG et LinkedIn
+  let metaHtml = `<span>${v.type||'—'} · ${v.ville||'—'}</span>`;
+  if (v.ig) {
+    let igUrl = v.ig; if (!igUrl.startsWith('http')) igUrl = 'https://' + igUrl;
+    metaHtml += ` <a href="${igUrl}" target="_blank" class="drawer-ig-btn">📷 Instagram</a>`;
+  }
+  if (v.linkedin) {
+    let lkUrl = v.linkedin; if (!lkUrl.startsWith('http')) lkUrl = 'https://' + lkUrl;
+    metaHtml += ` <a href="${lkUrl}" target="_blank" class="drawer-lk-btn">💼 LinkedIn</a>`;
+  }
+  document.getElementById('dr-meta').innerHTML = metaHtml;
+
+  document.getElementById('dr-email').value = v.email || '';
+  document.getElementById('dr-ig').value = v.ig || '';
+  document.getElementById('dr-linkedin').value = v.linkedin || '';
+  document.getElementById('dr-budget').value = v.budget || '';
+  document.getElementById('dr-artiste').value = v.artiste || '';
+  document.getElementById('dr-relance').value = v.relance || '';
+  document.getElementById('dr-notes').value = v.notes || '';
+
+  const stades = document.getElementById('dr-stades');
+  stades.innerHTML = STADES.map(s =>
+    `<button class="stade-btn ${v.stade===s?'on':''}" onclick="setStade('${s}')">${s}</button>`
+  ).join('');
+
+  if (v.aiAnalysis) {
+    document.getElementById('dr-ai-section').style.display = 'block';
+    document.getElementById('dr-ai-text').textContent = v.aiAnalysis;
+  } else {
+    document.getElementById('dr-ai-section').style.display = 'none';
+  }
+
+  const hist = document.getElementById('dr-hist');
+  const h = (v.history||[]).slice(0,10);
+  hist.innerHTML = h.length ? h.map(e=>`<div class="hist-item"><div class="hist-date">${e.date}</div><div class="hist-text">${e.text}</div></div>`).join('') :
+    '<div style="font-size:11px;color:var(--muted);">Aucune action</div>';
+
+  const msgBox = document.getElementById('dr-msg');
+  msgBox.textContent = 'Sélectionne un canal et clique "Personnaliser avec l\'IA"';
+  document.getElementById('send-status').style.display = 'none';
+
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  selId = null;
+}
+
+function setStade(s) {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  v.stade = s;
+  document.querySelectorAll('.stade-btn').forEach(b => b.classList.toggle('on', b.textContent===s));
+  addHist(v, `Stade → ${s}`); save(); updateCounts();
+  toast(`✓ ${v.nom} → ${s}`);
+}
+
+function autosave() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  v.email = document.getElementById('dr-email').value;
+  v.ig = document.getElementById('dr-ig').value;
+  v.linkedin = document.getElementById('dr-linkedin').value;
+  v.budget = document.getElementById('dr-budget').value;
+  v.artiste = document.getElementById('dr-artiste').value;
+  v.relance = document.getElementById('dr-relance').value;
+  v.notes = document.getElementById('dr-notes').value;
+  save();
+}
+
+function setCh(ch, btn) {
+  selCh = ch;
+  document.querySelectorAll('.ch-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function addNote() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  const note = prompt('Note :'); if (!note) return;
+  addHist(v, note); save();
+  openDrawer(selId);
+}
+
+function deleteVenue() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  if (!confirm(`Supprimer ${v.nom} ?`)) return;
+  DB.deleteVenue(v);
+  venues = venues.filter(x=>x.id!==selId);
+  closeDrawer(); save(); updateCounts(); renderPage();
+  toast(`✓ ${v.nom} supprimé`);
+}
+
+function addHist(v, text) {
+  if (!v.history) v.history = [];
+  v.history.unshift({ date: new Date().toLocaleString('fr-FR'), text });
+}
+
+function save() {
+  DB.saveAll(venues);
+  lsSave();
+  updateCounts();
+}
+
+// ══════════════════════════════════
+// MESSAGES
+// ══════════════════════════════════
+const TEMPLATES = {
+  instagram: (v, djs) => `Hello ${v.nom},
+
+Je me permets de vous écrire car nous représentons Düparecords (@duparecords), un label orienté house / tech house.
+
+Dans le cadre de notre développement, nous explorons de nouveaux clubs pour faire tourner nos DJs sur ${v.ville}.
+
+Nous pensons que votre direction artistique pourrait matcher avec des profils comme ${djs}.
+
+Seriez-vous ouverts à découvrir les projets ? Je peux vous envoyer les press kits ou échanger 10 minutes si c'est plus simple.`,
+
+  email: (v, djs, djsDetail) => `Objet : Düparecords – Proposition booking ${djs.split(',')[0].trim()}
+
+Bonjour,
+
+Je me permets de vous contacter dans le cadre de notre développement chez Düparecords — un label house / tech house qui fait tourner une trentaine d'artistes sur la scène française et européenne.
+
+Nous explorons actuellement de nouveaux partenaires sur ${v.ville} et pensons que l'univers musical de ${v.nom} pourrait correspondre à certains de nos artistes.
+
+Parmi notre roster :
+${djsDetail}
+
+Retrouvez notre label : https://instagram.com/duparecords/
+
+Seriez-vous disponible pour un échange rapide ?
+
+Bien à vous,
+[Signature]`,
+
+  whatsapp: (v, djs) => `Bonjour ${v.nom} 👋
+
+Je suis de l'agence Düparecords — on représente des DJs house / tech house.
+
+On cherche de nouvelles salles sur ${v.ville} et je pense que vos soirées pourraient matcher avec nos artistes (${djs}).
+
+Vous avez 10 min cette semaine pour qu'on en parle ? 🙏`,
+
+  linkedin: (v, djs, djsDetail) => `Bonjour,
+
+Je me permets de vous contacter suite à votre travail à ${v.nom}.
+
+Chez Düparecords, nous développons un roster d'artistes house / tech house — dont ${djs} — et cherchons à établir des partenariats sérieux sur ${v.ville}.
+
+Notre label : https://instagram.com/duparecords/
+Parmi nos artistes : ${djsDetail}
+
+Je serais ravi d'échanger quelques minutes pour vous présenter nos profils.
+
+Au plaisir d'échanger,
+[Signature]`
+};
+
+function suggereDJs(v, n) {
+  const notes = (v.notes||'').toLowerCase();
+  const scored = DJS.map(d => {
+    let score = 0;
+    if (notes.includes('techno') && d.style.toLowerCase().includes('techno')) score += 3;
+    if (notes.includes('house') && d.style.toLowerCase().includes('house')) score += 2;
+    if (notes.includes('nu disco') && d.style.toLowerCase().includes('nu disco')) score += 3;
+    if (notes.includes('deep') && d.style.toLowerCase().includes('deep')) score += 2;
+    if (notes.includes('afro') && d.style.toLowerCase().includes('afro')) score += 3;
+    score += Math.random(); // Mix
+    return { ...d, score };
+  });
+  return scored.sort((a,b)=>b.score-a.score).slice(0,n);
+}
+
+async function genMsg() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  const box = document.getElementById('dr-msg');
+  box.textContent = '';
+  box.innerHTML = '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+
+  const djsSuggeres = suggereDJs(v, 3);
+  const djsIG = djsSuggeres.map(d=>`${d.nom} (@${d.ig?d.ig.replace('instagram.com/','').replace('/',''):'duparecords'})`).join(', ');
+  const djsEmail = djsSuggeres.map(d=>`– ${d.nom} — https://${d.ig||'instagram.com/duparecords/'}`).join('\n');
+  const base = TEMPLATES[selCh]?.(v, djsIG, djsEmail) || '';
+
+  const prompts = {
+    instagram: `Tu es agent de booking Düparecords (label house/tech house France).\nTemplate de base :\n---\n${base}\n---\nPersonnalise pour ${v.nom} (${v.type}, ${v.ville}), style : "${v.notes||'électro/house'}".\nGarde les @, adapte le storytelling au lieu spécifique. Max 250 mots. Écris directement le message.`,
+    email: `Tu es agent de booking Düparecords (label house/tech house France).\nTemplate de base :\n---\n${base}\n---\nPersonnalise pour ${v.nom} (${v.type}, ${v.ville}), style : "${v.notes||'électro/house'}".\nGarde les liens cliquables, adapte l'accroche au lieu. Ton professionnel et chaleureux. Écris directement l'email complet.`,
+    whatsapp: `Tu es agent de booking Düparecords. Template :\n---\n${base}\n---\nPersonnalise en 3-4 lignes max pour ${v.nom}. Garde les emojis. Écris directement.`,
+    linkedin: `Tu es agent de booking Düparecords. Template :\n---\n${base}\n---\nPersonnalise pour ${v.nom} (${v.type}, ${v.ville}). Ton networking, 3 paragraphes. Garde les liens. Écris directement.`
+  };
+
+  try {
+    const res = await claudeAPI(prompts[selCh]);
+    box.textContent = res;
+    addHist(v, `Message ${selCh} généré`); save();
+  } catch(e) {
+    box.textContent = base;
+    addHist(v, `Message ${selCh} — template de base`); save();
+    if (e.message !== 'no key') toast('IA indispo — template affiché');
+  }
+}
+
+function showTemplate() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  const djs = suggereDJs(v, 3);
+  const djsIG = djs.map(d=>`${d.nom} (@${d.ig?d.ig.replace('instagram.com/','').replace('/',''):'duparecords'})`).join(', ');
+  const djsEmail = djs.map(d=>`– ${d.nom} — https://${d.ig||'instagram.com/duparecords/'}`).join('\n');
+  document.getElementById('dr-msg').textContent = TEMPLATES[selCh]?.(v, djsIG, djsEmail) || '';
+  toast('Template de base affiché');
+}
+
+function cpMsg() {
+  const txt = document.getElementById('dr-msg').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const c = document.getElementById('cp-ok'); c.style.opacity='1'; setTimeout(()=>c.style.opacity='0',2000);
+  });
+}
+
+async function sendMsg() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  const msg = document.getElementById('dr-msg').textContent;
+  if (!msg || msg.includes('Sélectionne')) { toast('⚠ Génère d\'abord un message'); return; }
+
+  const btn = document.getElementById('btn-send-msg');
+  btn.disabled = true; btn.innerHTML = '⏳...';
+
+  const statusEl = document.getElementById('send-status');
+  const sendOk = document.getElementById('send-ok');
+
+  if (selCh === 'email') {
+    if (!v.email) { statusEl.style.display='block'; statusEl.style.background='#FFEBEE'; statusEl.style.color='var(--red)'; statusEl.innerHTML='⚠ Pas d\'email pour cette venue.'; btn.disabled=false; btn.innerHTML='🚀 Envoyer'; return; }
+    let subject = 'Düparecords – Proposition booking';
+    let body = msg;
+    if (msg.startsWith('Objet :') || msg.startsWith('Objet:')) { const lines=msg.split('\n'); subject=lines[0].replace(/^Objet\s*:\s*/,'').trim(); body=lines.slice(1).join('\n').trim(); }
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(v.email)+'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body),'_blank');
+    addHist(v,'📧 Email envoyé → '+v.email);
+    statusEl.style.display='block'; statusEl.style.background='#E8F5E9'; statusEl.style.color='var(--green)'; statusEl.innerHTML='✅ Gmail ouvert pour <b>'+v.email+'</b>';
+  } else if (selCh === 'instagram') {
+    if (!v.ig) { statusEl.style.display='block'; statusEl.style.background='#FFEBEE'; statusEl.style.color='var(--red)'; statusEl.innerHTML='⚠ Pas d\'Instagram.'; btn.disabled=false; btn.innerHTML='🚀 Envoyer'; return; }
+    await navigator.clipboard.writeText(msg);
+    let igUrl = v.ig; if (!igUrl.startsWith('http')) igUrl='https://'+igUrl;
+    window.open(igUrl,'_blank');
+    addHist(v,'📷 Instagram ouvert → '+igUrl);
+    statusEl.style.display='block'; statusEl.style.background='#F3E5F5'; statusEl.style.color='var(--purple)'; statusEl.innerHTML='✅ <a href="'+igUrl+'" target="_blank" style="color:var(--purple);font-weight:700;">'+igUrl+'</a> ouvert<br>📋 Message copié — Ctrl+V dans Instagram';
+  } else if (selCh === 'linkedin') {
+    await navigator.clipboard.writeText(msg);
+    let lkUrl = v.linkedin ? (v.linkedin.startsWith('http') ? v.linkedin : 'https://'+v.linkedin) : 'https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(v.nom+' '+v.ville);
+    window.open(lkUrl,'_blank');
+    addHist(v,'💼 LinkedIn ouvert → '+v.nom);
+    statusEl.style.display='block'; statusEl.style.background='#E3F2FD'; statusEl.style.color='var(--blue)'; statusEl.innerHTML='✅ LinkedIn ouvert — 📋 Message copié';
+  } else if (selCh === 'whatsapp') {
+    await navigator.clipboard.writeText(msg);
+    if (v.telephone) { const p=v.telephone.replace(/[^0-9+]/g,''); window.open('https://wa.me/'+p+'?text='+encodeURIComponent(msg),'_blank'); }
+    else window.open('https://web.whatsapp.com/','_blank');
+    addHist(v,'💬 WhatsApp');
+    statusEl.style.display='block'; statusEl.style.background='#E8F5E9'; statusEl.style.color='var(--green)'; statusEl.innerHTML='✅ WhatsApp ouvert — 📋 Message copié';
+  }
+
+  if (v.stade==='Pas commencer') { v.stade='En cours'; }
+  save(); updateCounts();
+  sendOk.textContent='✓ Envoi ok'; sendOk.style.opacity='1'; setTimeout(()=>sendOk.style.opacity='0',4000);
+  logOutreach(v, selCh);
+  btn.disabled=false; btn.innerHTML='🚀 Envoyer';
+  setTimeout(()=>statusEl.style.display='none',10000);
+}
+
+// ══════════════════════════════════
+// DJ MODAL
+// ══════════════════════════════════
+function openDjModal(nom) {
+  const d = DJS.find(x=>x.nom===nom); if (!d) return;
+  document.getElementById('djm-name').textContent = d.nom;
+  document.getElementById('djm-style').textContent = d.style;
+  document.getElementById('djm-prix').textContent = 'Cachet minimum : ' + d.min.toLocaleString('fr-FR') + '€';
+
+  // Links
+  let linksHtml = '';
+  if (d.ig) linksHtml += `<a href="https://${d.ig}" target="_blank" class="dj-link-btn dj-link-ig">📷 Instagram</a>`;
+  document.getElementById('djm-links').innerHTML = linksHtml || '<span style="font-size:12px;color:var(--muted);">Pas de réseaux renseignés</span>';
+
+  // Bookings
+  const bookings = venues.filter(v => (v.artiste||'').toLowerCase().includes(d.nom.toLowerCase()));
+  const bookList = document.getElementById('djm-bookings');
+  if (!bookings.length) {
+    bookList.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucune proposition pour cet artiste</div>';
+  } else {
+    bookList.innerHTML = bookings.map(v => {
+      const dotClass = v.stade==='Booking confirmé' ? 'dot-valide' : v.stade==='Refus' ? 'dot-refuse' : 'dot-propose';
+      const pillCls = v.stade==='Booking confirmé' ? 'background:#E8F5E9;color:var(--green);' : v.stade==='Refus' ? 'background:#FFEBEE;color:var(--red);' : 'background:#E3F2FD;color:var(--blue);';
+      return `<div class="dj-booking-item" onclick="closeDjModal();openDrawer(${v.id});" style="cursor:pointer;">
+        <div class="dj-booking-dot ${dotClass}"></div>
+        <div class="dj-booking-venue">${v.nom}</div>
+        <div style="font-size:11px;color:var(--muted);">${v.ville}</div>
+        <span style="${pillCls}padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;">${v.stade}</span>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('dj-modal').classList.add('open');
+}
+
+function closeDjModal() {
+  document.getElementById('dj-modal').classList.remove('open');
+}
+
+// ══════════════════════════════════
+// ADD VENUE
+// ══════════════════════════════════
+function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+function newV() {
+  return {
+    id: Date.now() + Math.random(),
+    nom: document.getElementById('m-nom').value.trim(),
+    type: document.getElementById('m-type').value,
+    ville: document.getElementById('m-ville').value||'Paris',
+    email: document.getElementById('m-email').value,
+    ig: document.getElementById('m-ig').value,
+    linkedin: document.getElementById('m-linkedin').value,
+    notes: document.getElementById('m-notes').value,
+    stade: 'Pas commencer', budget:'', artiste:'', relance:'',
+    history:[], aiEnriched:false
+  };
+}
+function clrM() {
+  ['m-nom','m-email','m-ig','m-linkedin','m-notes'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('m-ville').value='Paris';
+}
+function addSimple() {
+  const v = newV(); if (!v.nom){toast('⚠ Nom requis');return;}
+  venues.push(v); save(); updateCounts(); renderPage(); closeAddModal(); clrM();
+  toast(`✓ ${v.nom} ajouté`);
+}
+async function addWithAI() {
+  const v = newV(); if (!v.nom){toast('⚠ Nom requis');return;}
+  venues.push(v); save(); updateCounts(); renderPage(); closeAddModal(); clrM();
+  selId = v.id; openDrawer(v.id); analyzeVenue();
+  toast(`✦ ${v.nom} — analyse IA en cours...`);
+}
+
+// ══════════════════════════════════
+// API CLAUDE
+// ══════════════════════════════════
+async function claudeAPI(prompt) {
+  if (!apiKey) throw new Error('no key');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type':'application/json', 'x-api-key':apiKey,
+      'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}]})
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.content[0].text;
+}
+
+async function claudeWithSystem(system, msg) {
+  if (!apiKey) throw new Error('no key');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system,messages:[{role:'user',content:msg}]})
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.content[0].text;
+}
+
+async function analyzeVenue() {
+  const v = venues.find(x=>x.id===selId); if (!v) return;
+  document.getElementById('dr-ai-section').style.display='block';
+  document.getElementById('dr-ai-text').innerHTML='<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  const djList = DJS.map(d=>`${d.nom} (${d.style}, min ${d.min}€)`).join(' | ');
+  try {
+    const res = await claudeAPI(`Expert booking DJ électronique France. Agence DUPA.\nVenue : ${v.nom} | ${v.type} | ${v.ville} | Style: ${v.notes||'?'}\nNos DJs : ${djList}\n3 points : 1. Compatibilité /5 2. 2-3 meilleurs DJs DUPA + pourquoi 3. Budget réaliste + canal idéal. Max 120 mots.`);
+    v.aiAnalysis = res; v.aiEnriched = true;
+    document.getElementById('dr-ai-text').textContent = res;
+    save(); renderPage();
+  } catch(e) { document.getElementById('dr-ai-text').textContent = 'Erreur : ' + e.message; }
+}
+
+// ══════════════════════════════════
+// API KEY
+// ══════════════════════════════════
+function openApiModal() { document.getElementById('api-modal').classList.add('open'); }
+function closeApiModal() { document.getElementById('api-modal').classList.remove('open'); }
+function saveApiKey() {
+  const v = document.getElementById('api-input').value.trim();
+  if (v && !v.startsWith('•')) {
+    apiKey = v; DB.saveConfig('dupa_key', v); updateApiUI(); closeApiModal(); toast('✓ Clé API enregistrée !');
+  }
+}
+function updateApiUI() {
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-label');
+  if (!dot) return;
+  if (apiKey) { dot.className='s-dot on'; lbl.textContent='Claude ✓'; }
+  else { dot.className='s-dot'; lbl.textContent='IA non connectée'; }
+  const chatDot = document.getElementById('chat-dot');
+  if (chatDot) chatDot.className = 'ai-chat-dot' + (apiKey?' on':'');
+}
+
+// ══════════════════════════════════
+// AI CHAT
+// ══════════════════════════════════
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('ai-chat-panel').classList.toggle('open', chatOpen);
+  if (chatOpen) { document.getElementById('ai-chat-input').focus(); updateApiUI(); }
+}
+function quickCmd(txt) { document.getElementById('ai-chat-input').value=txt; sendChat(); }
+
+function addMsg(text, role, isHtml) {
+  const body = document.getElementById('ai-chat-body');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ai-msg-' + role;
+  if (isHtml) div.innerHTML = '<div class="ai-msg-text">' + text + '</div>';
+  else { div.innerHTML = '<div class="ai-msg-text"></div>'; div.querySelector('.ai-msg-text').textContent = text; }
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function addTyping() {
+  const body = document.getElementById('ai-chat-body');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ai-msg-bot'; div.id='typing-indicator';
+  div.innerHTML='<div class="ai-msg-text"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>';
+  body.appendChild(div); body.scrollTop = body.scrollHeight;
+}
+function removeTyping() { const el=document.getElementById('typing-indicator'); if(el) el.remove(); }
+
+async function sendChat() {
+  const input = document.getElementById('ai-chat-input');
+  const msg = input.value.trim(); if (!msg) return;
+  input.value = '';
+  addMsg(msg, 'user'); addTyping();
+
+  const ctx = `Total venues: ${venues.length}\nPar stade: ${STADES.map(s=>s+':'+venues.filter(v=>v.stade===s).length).join(', ')}\nVilles: ${[...new Set(venues.map(v=>v.ville))].slice(0,10).join(', ')}\nDJs: ${DJS.length}`;
+  const system = `Tu es l'assistant IA du CRM DUPA Booking — agence de DJs électroniques France.\n\nDONNÉES CRM :\n${ctx}\n\nRéponse JSON toujours :\n{"message":"texte naturel","action":"STATS|FILTER|UPDATE|MESSAGE|NONE","data":{}}`;
+
+  try {
+    const res = await claudeWithSystem(system, msg);
+    removeTyping();
+    try {
+      const clean = res.replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(clean);
+      addMsg(parsed.message || res, 'bot');
+    } catch(e) { addMsg(res, 'bot'); }
+  } catch(e) {
+    removeTyping();
+    addMsg('Erreur : ' + e.message, 'bot');
+  }
+}
+
+// ══════════════════════════════════
+// EXPORT
+// ══════════════════════════════════
+function exportCSV() {
+  const h=['NOM','TYPE','VILLE','EMAIL','INSTAGRAM','LINKEDIN','STADE','BUDGET','ARTISTE','RELANCE','NOTES'];
+  const rows = venues.map(v=>[v.nom,v.type,v.ville,v.email,v.ig,v.linkedin||'',v.stade,v.budget,v.artiste,v.relance,v.notes].map(f=>`"${(f||'').replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob(['\ufeff'+[h.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='DUPA_CRM.csv'; a.click();
+  toast('✓ Export CSV');
+}
+
+// ══════════════════════════════════
+// TOAST
+// ══════════════════════════════════
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+</script>
+</body>
+</html>
